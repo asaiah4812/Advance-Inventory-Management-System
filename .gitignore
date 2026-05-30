@@ -1,0 +1,76 @@
+# --- Python / Django ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.manifest
+*.spec
+
+# Virtual environments
+backend/env/
+backend/.venv/
+.venv/
+venv/
+ENV/
+
+# Django runtime data
+backend/project/db.sqlite3
+backend/project/db.sqlite3-journal
+backend/project/media/*
+!backend/project/media/.gitkeep
+backend/project/staticfiles/
+*.log
+local_settings.py
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Node / Expo (mobile) ---
+frontend/node_modules/
+frontend/.expo/
+frontend/dist/
+frontend/web-build/
+frontend/expo-env.d.ts
+frontend/.metro-health-check*
+frontend/npm-debug.*
+frontend/yarn-debug.*
+frontend/yarn-error.*
+frontend/*.tsbuildinfo
+frontend/ios/
+frontend/android/
+frontend/.kotlin/
+
+# --- Tailwind (django-tailwind theme) ---
+backend/project/theme/static_src/node_modules/
+
+# --- IDE & OS ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Expo at repo root (if present) ---
+.expo/
+
+# --- Coverage & test artifacts ---
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# --- Misc ---
+*.orig
+*.bak

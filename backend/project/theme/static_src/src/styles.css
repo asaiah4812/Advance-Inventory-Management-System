@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --c-primary: 37 99 235;
+        --c-secondary: 16 185 129;
+        --c-background: 248 250 252;
+        --c-surface: 255 255 255;
+        --c-foreground: 15 23 42;
+        --c-muted: 100 116 139;
+        --c-border: 226 232 240;
+    }
+
+    .dark {
+        --c-primary: 96 165 250;
+        --c-secondary: 52 211 153;
+        --c-background: 2 6 23;
+        --c-surface: 15 23 42;
+        --c-foreground: 226 232 240;
+        --c-muted: 148 163 184;
+        --c-border: 30 41 59;
+    }
+
+    body {
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+}
+
+@layer utilities {
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+/* Theme-aware form controls */
+main input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]),
+main select,
+main textarea {
+    background-color: rgb(var(--c-surface));
+    color: rgb(var(--c-foreground));
+    border-color: rgb(var(--c-border));
+}
+
+main select option {
+    background-color: rgb(var(--c-surface));
+    color: rgb(var(--c-foreground));
+}
+
+.dark main input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+}

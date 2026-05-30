@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Low Stock | InventoryPro{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-foreground">Low Stock Alerts</h1>
+      <p class="text-sm text-muted mt-1">Products at or below their reorder threshold</p>
+    </div>
+    <a href="{% url 'inventory' %}" class="text-sm text-primary hover:underline font-medium">View all inventory →</a>
+  </div>
+
+  <div class="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="bg-background text-muted text-xs uppercase tracking-wider">
+            <th class="px-6 py-4 font-medium">Product</th>
+            <th class="px-6 py-4 font-medium">Barcode</th>
+            <th class="px-6 py-4 font-medium">Stock</th>
+            <th class="px-6 py-4 font-medium">Threshold</th>
+            <th class="px-6 py-4 font-medium">Category</th>
+            <th class="px-6 py-4 font-medium text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          {% for product in products %}
+          <tr class="hover:bg-background transition-colors">
+            <td class="px-6 py-4 font-medium text-foreground">{{ product.name }}</td>
+            <td class="px-6 py-4 text-sm font-mono text-muted">{{ product.barcode }}</td>
+            <td class="px-6 py-4">
+              <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-300">{{ product.stock_quantity }}</span>
+            </td>
+            <td class="px-6 py-4 text-sm text-muted">{{ product.low_stock_threshold }}</td>
+            <td class="px-6 py-4 text-sm text-muted">{{ product.category.name|default:"—" }}</td>
+            <td class="px-6 py-4 text-right">
+              <a href="{% url 'edit_product' product.id %}" class="text-sm text-primary hover:underline font-medium">Restock</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="px-6 py-12 text-center text-muted">
+              <p class="font-medium">All stocked up!</p>
+              <p class="text-sm mt-1">No products are below their threshold.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

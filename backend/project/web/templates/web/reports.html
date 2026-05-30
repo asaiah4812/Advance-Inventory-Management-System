@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports | InventoryPro{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-bold text-foreground">Reports</h1>
+    <p class="text-sm text-muted mt-1">Sales performance and top products</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm">
+      <p class="text-xs text-muted uppercase font-medium">Today</p>
+      <p class="text-2xl font-bold text-foreground mt-1">₦{{ summary.today.revenue|default:0|floatformat:2 }}</p>
+      <p class="text-xs text-muted/70 mt-1">{{ summary.today.count|default:0 }} sales</p>
+    </div>
+    <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm">
+      <p class="text-xs text-muted uppercase font-medium">This Week</p>
+      <p class="text-2xl font-bold text-foreground mt-1">₦{{ summary.week.revenue|default:0|floatformat:2 }}</p>
+      <p class="text-xs text-muted/70 mt-1">{{ summary.week.count|default:0 }} sales</p>
+    </div>
+    <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm">
+      <p class="text-xs text-muted uppercase font-medium">This Month</p>
+      <p class="text-2xl font-bold text-foreground mt-1">₦{{ summary.month.revenue|default:0|floatformat:2 }}</p>
+      <p class="text-xs text-muted/70 mt-1">{{ summary.month.count|default:0 }} sales</p>
+    </div>
+    <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm">
+      <p class="text-xs text-muted uppercase font-medium">All Time</p>
+      <p class="text-2xl font-bold text-primary mt-1">₦{{ summary.all_time.revenue|default:0|floatformat:2 }}</p>
+      <p class="text-xs text-muted/70 mt-1">{{ summary.all_time.count|default:0 }} sales</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <section class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+      <header class="px-6 py-5 border-b border-border bg-gradient-to-r from-primary/10 to-transparent">
+        <h3 class="font-bold text-foreground">Daily Revenue (7 Days)</h3>
+        <p class="text-xs text-muted mt-1">Daily sales trend and momentum</p>
+      </header>
+      <div class="p-6">
+        <div class="grid grid-cols-3 gap-px bg-border rounded-xl overflow-hidden mb-4 border border-border">
+          <div class="bg-surface px-3 py-2">
+            <p class="text-[11px] uppercase text-muted font-medium">Total</p>
+            <p class="text-sm font-bold text-foreground" id="dailyTotal">₦0.00</p>
+          </div>
+          <div class="bg-surface px-3 py-2">
+            <p class="text-[11px] uppercase text-muted font-medium">Peak</p>
+            <p class="text-sm font-bold text-primary" id="dailyPeak">₦0.00</p>
+          </div>
+          <div class="bg-surface px-3 py-2">
+            <p class="text-[11px] uppercase text-muted font-medium">Avg</p>
+            <p class="text-sm font-bold text-secondary" id="dailyAvg">₦0.00</p>
+          </div>
+        </div>
+        <div class="relative rounded-xl border border-border bg-background/50 p-4">
+          <div id="dailyEmpty" class="hidden absolute inset-0 z-10 items-center justify-center text-center">
+            <p class="text-sm text-muted">No daily revenue yet.</p>
+          </div>
+          <div class="h-64"><canvas id="reportDailyChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+      <header class="px-6 py-5 border-b border-border bg-gradient-to-r from-secondary/10 to-transparent">
+        <h3 class="font-bold text-foreground">Weekly Revenue</h3>
+        <p class="text-xs text-muted mt-1">Weekly trend across recent periods</p>
+      </header>
+      <div class="p-6">
+        <div class="grid grid-cols-3 gap-px bg-border rounded-xl overflow-hidden mb-4 border border-border">
+          <div class="bg-surface px-3 py-2">
+            <p class="text-[11px] uppercase text-muted font-medium">Total</p>
+            <p class="text-sm font-bold text-foreground" id="weeklyTotal">₦0.00</p>
+          </div>
+          <div class="bg-surface px-3 py-2">
+            <p class="text-[11px] uppercase text-muted font-medium">Peak</p>
+            <p class="text-sm font-bold text-primary" id="weeklyPeak">₦0.00</p>
+          </div>
+          <div class="bg-surface px-3 py-2">
+            <p class="text-[11px] uppercase text-muted font-medium">Avg</p>
+            <p class="text-sm font-bold text-secondary" id="weeklyAvg">₦0.00</p>
+          </div>
+        </div>
+        <div class="relative rounded-xl border border-border bg-background/50 p-4">
+          <div id="weeklyEmpty" class="hidden absolute inset-0 z-10 items-center justify-center text-center">
+            <p class="text-sm text-muted">No weekly revenue yet.</p>
+          </div>
+          <div class="h-64"><canvas id="reportWeeklyChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+    <div class="p-6 border-b border-border">
+      <h3 class="font-bold text-foreground">Top Selling Products</h3>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="bg-background text-muted text-xs uppercase">
+            <th class="px-6 py-4">Product</th>
+            <th class="px-6 py-4">Units Sold</th>
+            <th class="px-6 py-4">Revenue</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          {% for row in top_products %}
+          <tr class="hover:bg-background">
+            <td class="px-6 py-4 font-medium text-foreground">{{ row.product__name }}</td>
+            <td class="px-6 py-4 text-foreground/80">{{ row.qty }}</td>
+            <td class="px-6 py-4 text-primary font-bold">₦{{ row.revenue|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="px-6 py-10 text-center text-muted">No sales data yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const daily = {{ earnings_daily_json|safe }};
+  const weekly = {{ earnings_weekly_json|safe }};
+  let reportCharts = [];
+
+  const money = (n) => '₦' + Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function chartTheme() {
+    const root = document.documentElement;
+    const css = getComputedStyle(root);
+    const p = css.getPropertyValue('--c-primary').trim() || '37 99 235';
+    const s = css.getPropertyValue('--c-secondary').trim() || '16 185 129';
+    const fg = css.getPropertyValue('--c-foreground').trim() || '15 23 42';
+    const border = css.getPropertyValue('--c-border').trim() || '226 232 240';
+    const dark = root.classList.contains('dark');
+    return {
+      primary: `rgb(${p})`,
+      secondary: `rgb(${s})`,
+      axis: `rgb(${fg} / ${dark ? 0.75 : 0.68})`,
+      grid: `rgb(${border} / ${dark ? 0.35 : 0.55})`,
+      tipBg: `rgb(${dark ? '15 23 42' : '255 255 255'} / 0.96)`,
+      tipText: `rgb(${fg})`,
+      tipBorder: `rgb(${border})`,
+    };
+  }
+
+  function gradient(ctx, rgb) {
+    const g = ctx.createLinearGradient(0, 0, 0, 260);
+    g.addColorStop(0, rgb.replace('rgb(', 'rgba(').replace(')', ', 0.45)'));
+    g.addColorStop(1, rgb.replace('rgb(', 'rgba(').replace(')', ', 0.08)'));
+    return g;
+  }
+
+  function setSummary(series, prefix) {
+    const vals = (series.values || []).map(v => Number(v || 0));
+    const total = vals.reduce((a, b) => a + b, 0);
+    const peak = vals.length ? Math.max(...vals) : 0;
+    const avg = vals.length ? total / vals.length : 0;
+    document.getElementById(prefix + 'Total').textContent = money(total);
+    document.getElementById(prefix + 'Peak').textContent = money(peak);
+    document.getElementById(prefix + 'Avg').textContent = money(avg);
+    const hasData = vals.some(v => v > 0);
+    const empty = document.getElementById(prefix + 'Empty');
+    if (empty) empty.className = `${hasData ? 'hidden' : 'flex'} absolute inset-0 z-10 items-center justify-center text-center`;
+  }
+
+  function makeChart(id, series, prefix, colorKey) {
+    const canvas = document.getElementById(id);
+    if (!canvas || typeof Chart === 'undefined') return;
+    const ctx = canvas.getContext('2d');
+    const theme = chartTheme();
+    const color = colorKey === 'secondary' ? theme.secondary : theme.primary;
+    const fill = gradient(ctx, color);
+    setSummary(series, prefix);
+
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: series.labels,
+        datasets: [{
+          data: series.values,
+          borderColor: color,
+          backgroundColor: fill,
+          fill: true,
+          tension: 0.4,
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: color,
+          pointBorderWidth: 2,
+          pointBorderColor: theme.tipBg
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 450 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: theme.tipBg,
+            titleColor: theme.tipText,
+            bodyColor: theme.tipText,
+            borderColor: theme.tipBorder,
+            borderWidth: 1,
+            callbacks: { label: (ctx) => ` ${money(ctx.parsed.y)}` }
+          }
+        },
+        scales: {
+          x: { ticks: { color: theme.axis, maxRotation: 45, font: { size: 11 } }, grid: { display: false }, border: { display: false } },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: theme.axis,
+              maxTicksLimit: 6,
+              callback: (v) => v >= 1000000 ? `₦${(v/1000000).toFixed(1)}M` : (v >= 1000 ? `₦${(v/1000).toFixed(0)}k` : `₦${v}`)
+            },
+            grid: { color: theme.grid },
+            border: { display: false }
+          }
+        }
+      }
+    });
+    reportCharts.push(chart);
+  }
+
+  function renderReportsCharts() {
+    const debugMode = '{{ debug }}' === 'True';
+    const hasDaily = daily.values && daily.values.some(v => Number(v) > 0);
+    const hasWeekly = weekly.values && weekly.values.some(v => Number(v) > 0);
+
+    const demoDaily = {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      values: [52000, 88000, 76000, 94000, 132000, 118000, 101000],
+    };
+    const demoWeekly = {
+      labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
+      values: [420000, 510000, 480000, 560000, 610000, 590000, 640000, 670000],
+    };
+
+    reportCharts.forEach(c => c.destroy());
+    reportCharts = [];
+    makeChart('reportDailyChart', (!hasDaily && debugMode) ? demoDaily : daily, 'daily', 'primary');
+    makeChart('reportWeeklyChart', (!hasWeekly && debugMode) ? demoWeekly : weekly, 'weekly', 'secondary');
+  }
+
+  renderReportsCharts();
+  new MutationObserver(() => renderReportsCharts())
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+</script>
+{% endblock %}

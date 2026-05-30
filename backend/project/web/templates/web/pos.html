@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+
+{% block title %}POS Scanner | InventoryPro{% endblock %}
+
+{% block content %}
+<div x-data="posSystem()" class="h-full flex flex-col md:flex-row gap-6">
+    <!-- Scanner & Products Section -->
+    <div class="flex-1 flex flex-col bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
+        <div class="p-6 border-b border-border bg-background flex justify-between items-center">
+            <div>
+                <h2 class="text-lg font-bold text-foreground">Scanner & Search</h2>
+                <p class="text-sm text-muted mt-1">Scan a barcode or type to search</p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <div class="relative">
+                    <input
+                        type="text"
+                        x-ref="barcodeInput"
+                        x-model="barcodeInput"
+                        @keydown.enter.prevent="submitBarcodeInput()"
+                        placeholder="USB scanner: click here & scan..."
+                        class="pl-10 pr-4 py-2 border-2 border-secondary bg-secondary/10 rounded-xl focus:ring-2 focus:ring-secondary outline-none w-full sm:w-56 text-sm font-mono text-foreground"
+                        autocomplete="off"
+                    >
+                    <svg class="w-5 h-5 text-emerald-600 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                </div>
+                <div class="relative">
+                    <input type="text" x-model="searchQuery" @keydown.enter.prevent="searchOnEnter()" placeholder="Search name or barcode..." class="pl-10 pr-4 py-2 border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none w-full sm:w-52 text-sm">
+                    <svg class="w-5 h-5 text-muted absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+            </div>
+        </div>
+        
+        <p x-show="lastScanMsg" x-text="lastScanMsg" class="px-6 py-2 text-sm font-medium text-secondary bg-secondary/10 border-b border-secondary/20"></p>
+        <div class="p-6 flex-1 overflow-auto">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="product in filteredProducts" :key="product.id">
+                    <button @click="addToCart(product)" class="text-left p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/10 transition-all flex flex-col h-full active:scale-95">
+                        <div class="font-medium text-foreground" x-text="product.name"></div>
+                        <div class="text-xs text-muted mt-1" x-text="'Barcode: ' + product.barcode"></div>
+                        <div class="mt-auto pt-3 flex justify-between items-end w-full">
+                            <div class="text-primary font-bold text-lg">₦<span x-text="product.price"></span></div>
+                            <span class="text-xs font-medium px-2 py-1 rounded-md" :class="product.stock_quantity > 5 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' : 'bg-red-500/10 text-red-600 dark:text-red-300'" x-text="product.stock_quantity + ' left'"></span>
+                        </div>
+                    </button>
+                </template>
+                <div x-show="filteredProducts.length === 0" class="col-span-full py-12 text-center text-muted">
+                    No products found.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Section -->
+    <div class="w-full md:w-96 bg-surface rounded-2xl shadow-sm border border-border flex flex-col">
+        <div class="p-6 border-b border-border flex justify-between items-center">
+            <h2 class="text-lg font-bold text-foreground">Current Sale</h2>
+            <button @click="cart = []" class="text-sm text-red-500 hover:text-red-700 font-medium">Clear</button>
+        </div>
+        
+        <div class="flex-1 p-6 overflow-auto space-y-4">
+            <template x-if="cart.length === 0">
+                <div class="h-full flex flex-col items-center justify-center text-muted">
+                    <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <p>Cart is empty</p>
+                </div>
+            </template>
+            
+            <template x-for="item in cart" :key="item.product_id">
+                <div class="flex justify-between items-center p-3 border border-border rounded-xl">
+                    <div class="flex-1">
+                        <div class="font-medium text-sm text-foreground" x-text="item.name"></div>
+                        <div class="text-xs text-muted">₦<span x-text="item.unit_price"></span> x <span x-text="item.quantity"></span></div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="flex items-center bg-background rounded-lg p-1 border border-border">
+                            <button @click="updateQuantity(item.product_id, -1)" class="w-6 h-6 flex items-center justify-center text-muted hover:bg-surface rounded shadow-sm">-</button>
+                            <span class="w-8 text-center text-sm font-medium" x-text="item.quantity"></span>
+                            <button @click="updateQuantity(item.product_id, 1)" class="w-6 h-6 flex items-center justify-center text-muted hover:bg-surface rounded shadow-sm">+</button>
+                        </div>
+                        <span class="font-bold text-sm w-16 text-right">₦<span x-text="item.subtotal"></span></span>
+                    </div>
+                </div>
+            </template>
+        </div>
+        
+        <div class="p-6 bg-background border-t border-border">
+            <div class="flex justify-between items-center mb-4 text-lg">
+                <span class="text-muted font-medium">Total</span>
+                <div class="text-2xl font-bold text-foreground">₦<span x-text="cartTotal"></span></div>
+            </div>
+            <button @click="checkout()" :disabled="cart.length === 0" class="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98]">
+                Complete Checkout
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function posSystem() {
+        return {
+            products: JSON.parse('{{ products|escapejs }}'),
+            searchQuery: '',
+            barcodeInput: '',
+            cart: [],
+            barcodeBuffer: '',
+            lastKeyTime: Date.now(),
+            lastScanMsg: '',
+            
+            init() {
+                // Global listener: works when focus is NOT in an input (scanner in "keyboard wedge" mode)
+                window.addEventListener('keydown', (e) => {
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                        return;
+                    }
+
+                    const currentTime = Date.now();
+                    if (currentTime - this.lastKeyTime > 100) {
+                        this.barcodeBuffer = '';
+                    }
+                    this.lastKeyTime = currentTime;
+
+                    if (e.key === 'Enter') {
+                        if (this.barcodeBuffer.length > 3) {
+                            this.processBarcode(this.barcodeBuffer);
+                            this.barcodeBuffer = '';
+                            e.preventDefault();
+                        }
+                    } else if (e.key.length === 1) {
+                        this.barcodeBuffer += e.key;
+                    }
+                });
+
+                this.$nextTick(() => {
+                    if (this.$refs.barcodeInput) {
+                        this.$refs.barcodeInput.focus();
+                    }
+                });
+            },
+
+            submitBarcodeInput() {
+                const code = (this.barcodeInput || '').trim();
+                if (code) {
+                    this.processBarcode(code);
+                    this.barcodeInput = '';
+                }
+                this.$nextTick(() => this.$refs.barcodeInput?.focus());
+            },
+
+            searchOnEnter() {
+                const q = (this.searchQuery || '').trim();
+                if (!q) return;
+                const exact = this.products.find(p => p.barcode === q);
+                if (exact) {
+                    this.addToCart(exact);
+                    this.searchQuery = '';
+                }
+            },
+            
+            get filteredProducts() {
+                if (this.searchQuery === '') return this.products;
+                const lowerQuery = this.searchQuery.toLowerCase();
+                return this.products.filter(p => 
+                    p.name.toLowerCase().includes(lowerQuery) || 
+                    p.barcode.toLowerCase().includes(lowerQuery)
+                );
+            },
+            
+            get cartTotal() {
+                return this.cart.reduce((total, item) => total + parseFloat(item.subtotal), 0).toFixed(2);
+            },
+            
+            processBarcode(barcode) {
+                const code = (barcode || '').trim();
+                const product = this.products.find(p => p.barcode === code);
+                if (product) {
+                    this.addToCart(product);
+                    this.lastScanMsg = 'Added: ' + product.name;
+                } else {
+                    this.lastScanMsg = 'Not found: ' + code;
+                    if (confirm('Product not found: ' + code + '\n\nAdd as new product?')) {
+                        window.location.href = '/inventory/add/?barcode=' + encodeURIComponent(code);
+                    }
+                }
+                setTimeout(() => { this.lastScanMsg = ''; }, 3000);
+            },
+            
+            addToCart(product) {
+                const index = this.cart.findIndex(i => i.product_id === product.id);
+                if (index !== -1) {
+                    this.cart[index].quantity++;
+                    this.cart[index].subtotal = (this.cart[index].quantity * this.cart[index].unit_price).toFixed(2);
+                } else {
+                    this.cart.push({
+                        product_id: product.id,
+                        name: product.name,
+                        quantity: 1,
+                        unit_price: parseFloat(product.price).toFixed(2),
+                        subtotal: parseFloat(product.price).toFixed(2)
+                    });
+                }
+                // Trigger Alpine reactivity
+                this.cart = [...this.cart];
+            },
+            
+            updateQuantity(productId, change) {
+                const index = this.cart.findIndex(i => i.product_id === productId);
+                if (index !== -1) {
+                    this.cart[index].quantity += change;
+                    if (this.cart[index].quantity <= 0) {
+                        this.cart = this.cart.filter(i => i.product_id !== productId);
+                    } else {
+                        this.cart[index].subtotal = (this.cart[index].quantity * this.cart[index].unit_price).toFixed(2);
+                    }
+                }
+                // Trigger Alpine reactivity
+                this.cart = [...this.cart];
+            },
+            
+            async checkout() {
+                if (this.cart.length === 0) return;
+                
+                // Use built-in crypto.randomUUID() if available, else fallback
+                const clientId = window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+                
+                const saleData = {
+                    client_id: clientId,
+                    total_amount: this.cartTotal,
+                    discount: "0.00",
+                    grand_total: this.cartTotal,
+                    items: JSON.parse(JSON.stringify(this.cart)) // clone
+                };
+
+                const sync = Alpine.store('sync');
+                const result = await sync.postSaleDirect(saleData);
+                if (!result.ok) {
+                    await sync.addSaleToQueue(saleData);
+                    alert('Sale saved offline. Sync later to print receipt.');
+                } else {
+                    if (result.saleId) {
+                        sync.openReceipt(result.saleId);
+                    }
+                    alert('Sale complete! Receipt opened for printing.');
+                }
+
+                this.cart.forEach(item => {
+                    const p = this.products.find(p => p.id === item.product_id);
+                    if(p) p.stock_quantity -= item.quantity;
+                });
+
+                this.cart = [];
+            }
+        }
+    }
+</script>
+{% endblock %}

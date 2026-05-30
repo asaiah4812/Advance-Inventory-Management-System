@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Management | InventoryPro{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="{ showAddForm: false }">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-foreground">Staff Management</h1>
+            <p class="text-muted text-sm mt-1">Manage worker accounts and permissions</p>
+        </div>
+        <button @click="showAddForm = !showAddForm" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl shadow-sm flex items-center transition-all">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            Add New Staff
+        </button>
+    </div>
+
+    <div x-show="showAddForm" x-cloak x-transition class="bg-surface p-6 rounded-2xl shadow-sm border border-border mb-6">
+        <h3 class="text-lg font-bold text-foreground mb-4">Create Staff Account</h3>
+        <form method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-foreground/80 mb-1">Username *</label>
+                <input type="text" name="username" required class="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-foreground/80 mb-1">Email (Optional)</label>
+                <input type="email" name="email" class="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-foreground/80 mb-1">Password *</label>
+                <input type="password" name="password" required class="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary outline-none">
+            </div>
+            <div class="md:col-span-3 flex justify-end space-x-3 mt-2">
+                <button type="button" @click="showAddForm = false" class="px-6 py-2 border border-border rounded-xl text-muted hover:bg-background">Cancel</button>
+                <button type="submit" class="px-6 py-2 bg-primary text-white rounded-xl hover:bg-primary/90">Create Account</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="bg-background text-muted text-xs uppercase tracking-wider">
+                    <th class="px-6 py-4 font-medium">Username</th>
+                    <th class="px-6 py-4 font-medium">Email</th>
+                    <th class="px-6 py-4 font-medium">Date Joined</th>
+                    <th class="px-6 py-4 font-medium">Status</th>
+                    <th class="px-6 py-4 font-medium text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+                {% for member in staff_members %}
+                <tr class="hover:bg-background transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold mr-3">
+                                {{ member.username|slice:":1"|upper }}
+                            </div>
+                            <span class="font-medium text-foreground">{{ member.username }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-muted">{{ member.email|default:"No email" }}</td>
+                    <td class="px-6 py-4 text-sm text-muted">{{ member.date_joined|date:"M d, Y" }}</td>
+                    <td class="px-6 py-4">
+                        {% if member.is_active %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">Active</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-300">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right space-x-2">
+                        <a href="{% url 'toggle_staff' member.id %}" class="inline-flex items-center px-3 py-1.5 border border-border rounded-lg text-xs font-medium {% if member.is_active %}text-amber-600 dark:text-amber-400 hover:bg-amber-500/10{% else %}text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10{% endif %} transition-colors">
+                            {% if member.is_active %}Disable{% else %}Enable{% endif %}
+                        </a>
+                        <button 
+                            @click="if(confirm('Are you sure you want to delete this staff member? This cannot be undone.')) window.location.href='{% url 'delete_staff' member.id %}'"
+                            class="inline-flex items-center px-3 py-1.5 border border-red-500/20 rounded-lg text-xs font-medium text-red-500 hover:bg-red-500/10 transition-colors"
+                        >
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-muted">
+                        <svg class="w-12 h-12 text-muted/40 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <p>No staff members found.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

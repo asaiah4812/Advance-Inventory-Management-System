@@ -1,0 +1,267 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}InventoryPro Web{% endblock %}</title>
+    <script>
+        (function () {
+            try {
+                const saved = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const theme = saved === 'light' || saved === 'dark' ? saved : (prefersDark ? 'dark' : 'light');
+                if (theme === 'dark') document.documentElement.classList.add('dark');
+            } catch (e) {}
+        })();
+    </script>
+    {% tailwind_css %}
+    <script defer src="{% static 'vendor/alpine.min.js' %}"></script>
+    <script src="{% static 'vendor/localforage.min.js' %}"></script>
+    <script src="{% static 'vendor/chart.umd.min.js' %}"></script>
+    <script src="{% static 'vendor/uuid.min.js' %}"></script>
+    {% if debug %}
+    {% load django_browser_reload %}
+    {% django_browser_reload_script %}
+    {% endif %}
+</head>
+<body class="antialiased flex h-screen overflow-hidden bg-background text-foreground">
+
+    {% if not user.is_authenticated %}
+    <div class="fixed top-4 right-4 z-50" x-data="themeToggle()" x-init="init()">
+        <button type="button" @click="toggle()" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-surface shadow-sm hover:bg-background transition-colors" aria-label="Toggle theme">
+            <svg x-show="!isDark" class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364-1.414 1.414M7.05 16.95l-1.414 1.414m0-11.314L7.05 7.05m9.9 9.9 1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+            <svg x-show="isDark" class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+        </button>
+    </div>
+    {% endif %}
+    
+    {% if user.is_authenticated %}
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 bg-surface border-r border-border flex flex-col justify-between hidden md:flex">
+        <div>
+            <div class="h-16 flex items-center px-6 border-b border-border">
+                <svg class="w-8 h-8 text-primary mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                <span class="text-xl font-bold">InventoryPro</span>
+            </div>
+            <nav class="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-8rem)]">
+                {% with n=request.resolver_match.url_name %}
+                <a href="{% url 'dashboard' %}" class="flex items-center px-4 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors {% if n == 'dashboard' %}bg-primary/10 text-primary font-medium{% else %}text-muted{% endif %}">
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Dashboard
+                </a>
+                <a href="{% url 'pos' %}" class="flex items-center px-4 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors {% if n == 'pos' %}bg-primary/10 text-primary font-medium{% else %}text-muted{% endif %}">
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                    POS
+                </a>
+                <a href="{% url 'sales_list' %}" class="flex items-center px-4 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors {% if n == 'sales_list' or n == 'sale_receipt' %}bg-primary/10 text-primary font-medium{% else %}text-muted{% endif %}">
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Sales & Receipts
+                </a>
+                <a href="{% url 'inventory' %}" class="flex items-center px-4 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors {% if n == 'inventory' or n == 'add_product' or n == 'edit_product' %}bg-primary/10 text-primary font-medium{% else %}text-muted{% endif %}">
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    Inventory
+                </a>
+                <a href="{% url 'low_stock' %}" class="flex items-center px-4 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors {% if n == 'low_stock' %}bg-primary/10 text-primary font-medium{% else %}text-muted{% endif %}">
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Low Stock
+                </a>
+                <a href="{% url 'categories' %}" class="flex items-center px-4 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors {% if n == 'categories' %}bg-primary/10 text-primary font-medium{% else %}text-muted{% endif %}">
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                    Categories
+                </a>
+                {% if user.is_superuser %}
+                <a href="{% url 'data_exchange' %}" class="flex items-center px-4 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors {% if n == 'data_exchange' or n == 'export_products' or n == 'import_products' or n == 'export_sales' or n == 'import_sales' %}bg-primary/10 text-primary font-medium{% else %}text-muted{% endif %}">
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Import / Export
+                </a>
+                <a href="{% url 'reports' %}" class="flex items-center px-4 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors {% if n == 'reports' %}bg-primary/10 text-primary font-medium{% else %}text-muted{% endif %}">
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+                    Reports
+                </a>
+                <a href="{% url 'staff_list' %}" class="flex items-center px-4 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors {% if n == 'staff_list' %}bg-primary/10 text-primary font-medium{% else %}text-muted{% endif %}">
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    Staff
+                </a>
+                {% endif %}
+                {% endwith %}
+            </nav>
+        </div>
+        <div class="p-4 border-t border-border space-y-2" x-data="themeToggle()" x-init="init()">
+            <button type="button" @click="toggle()" class="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-background/60 border border-border hover:bg-background transition-colors">
+                <span class="text-sm font-medium text-muted" x-text="label"></span>
+                <span class="inline-flex items-center gap-2">
+                    <svg x-show="!isDark" class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364-1.414 1.414M7.05 16.95l-1.414 1.414m0-11.314L7.05 7.05m9.9 9.9 1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+                    <svg x-show="isDark" class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+                </span>
+            </button>
+            <a href="{% url 'logout' %}" class="flex items-center px-4 py-3 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                Sign Out
+            </a>
+        </div>
+    </aside>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        {% if user.is_authenticated %}
+        <header class="h-16 bg-surface border-b border-border flex items-center justify-between px-6 md:hidden" x-data="themeToggle()" x-init="init()">
+            <span class="text-xl font-bold text-primary">InventoryPro</span>
+            <button type="button" @click="toggle()" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background/60 hover:bg-background transition-colors">
+                <span class="text-xs font-medium text-muted" x-text="isDark ? 'Dark' : 'Light'"></span>
+                <svg x-show="!isDark" class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364-1.414 1.414M7.05 16.95l-1.414 1.414m0-11.314L7.05 7.05m9.9 9.9 1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+                <svg x-show="isDark" class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+            </button>
+        </header>
+        {% endif %}
+        
+        <div class="flex-1 overflow-auto p-6">
+            {% if messages %}
+            <div class="mb-4 space-y-2">
+                {% for message in messages %}
+                <div class="px-4 py-3 rounded-xl text-sm border {% if message.tags == 'error' %}bg-red-500/10 text-red-800 dark:text-red-200 border-red-500/20{% else %}bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 border-emerald-500/20{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Global Offline Sync Script for POS/Web -->
+    <script>
+        document.addEventListener('alpine:init', () => {
+            const syncStore = {
+                queueCount: 0,
+                isOnline: navigator.onLine,
+                init() {
+                    window.addEventListener('online', () => { this.isOnline = true; this.attemptSync(); });
+                    window.addEventListener('offline', () => { this.isOnline = false; });
+                    this.updateCount();
+                    // Attempt sync every 30 seconds if online
+                    setInterval(() => {
+                        if(this.isOnline) this.attemptSync();
+                    }, 30000);
+                },
+                async updateCount() {
+                    const queue = await localforage.getItem('sync_queue') || [];
+                    this.queueCount = queue.length;
+                },
+                async addSaleToQueue(sale) {
+                    const queue = await localforage.getItem('sync_queue') || [];
+                    queue.push(sale);
+                    await localforage.setItem('sync_queue', queue);
+                    this.updateCount();
+                    if(this.isOnline) this.attemptSync();
+                },
+                notifyDashboardRefresh(detail = {}) {
+                    window.dispatchEvent(new CustomEvent('dashboard:refresh', { detail }));
+                },
+                async postSaleDirect(saleData) {
+                    if (!navigator.onLine) return false;
+                    try {
+                        const response = await fetch('/api/sales/', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': this.getCookie('csrftoken'),
+                            },
+                            body: JSON.stringify(saleData),
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.notifyDashboardRefresh({ synced: 1, source: 'pos_checkout' });
+                            return { ok: true, saleId: data.id };
+                        }
+                    } catch (error) {
+                        console.warn('Direct sale POST failed, will queue offline', error);
+                    }
+                    return { ok: false };
+                },
+                openReceipt(saleId) {
+                    if (saleId) {
+                        window.open('/sales/' + saleId + '/receipt/?print=1', '_blank', 'width=420,height=720');
+                    }
+                },
+                async attemptSync() {
+                    const queue = await localforage.getItem('sync_queue') || [];
+                    if (queue.length === 0) return { synced: 0 };
+
+                    try {
+                        const response = await fetch('/api/sync/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                // We are using session auth, so CSRF token is needed
+                                'X-CSRFToken': this.getCookie('csrftoken')
+                            },
+                            body: JSON.stringify({ sales: queue })
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            const syncedCount = result.synced_sales ? result.synced_sales.length : queue.length;
+                            await localforage.setItem('sync_queue', []);
+                            this.updateCount();
+                            this.notifyDashboardRefresh({
+                                source: 'offline_sync',
+                                synced: syncedCount,
+                            });
+                            return { synced: syncedCount };
+                        }
+                    } catch (error) {
+                        console.error('Failed to sync. Retrying later.', error);
+                    }
+                    return { synced: 0 };
+                },
+                getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                }
+            };
+            Alpine.store('sync', syncStore);
+            syncStore.init();
+        });
+    </script>
+    <script>
+        function themeToggle() {
+            const getSaved = () => {
+                try { return localStorage.getItem('theme'); } catch (e) { return null; }
+            };
+            const setSaved = (v) => {
+                try { localStorage.setItem('theme', v); } catch (e) {}
+            };
+
+            return {
+                isDark: document.documentElement.classList.contains('dark'),
+                get label() { return this.isDark ? 'Dark mode' : 'Light mode'; },
+                toggle() {
+                    this.isDark = !this.isDark;
+                    document.documentElement.classList.toggle('dark', this.isDark);
+                    setSaved(this.isDark ? 'dark' : 'light');
+                },
+                init() {
+                    const saved = getSaved();
+                    if (saved === 'dark' || saved === 'light') {
+                        this.isDark = saved === 'dark';
+                        document.documentElement.classList.toggle('dark', this.isDark);
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>

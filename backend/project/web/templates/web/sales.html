@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Sales | InventoryPro{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-foreground">Sales History</h1>
+      <p class="text-sm text-muted mt-1">All transactions — open or print a receipt for any sale</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      {% if is_manager %}
+      <a href="{% url 'export_sales' %}{% if filters.from or filters.to %}?from={{ filters.from }}&to={{ filters.to }}{% endif %}" class="inline-flex items-center justify-center border border-border text-foreground/80 hover:bg-background px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+        Export Excel
+      </a>
+      <a href="{% url 'data_exchange' %}" class="inline-flex items-center justify-center border border-border text-foreground/80 hover:bg-background px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+        Import
+      </a>
+      {% endif %}
+      <a href="{% url 'pos' %}" class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+        + New Sale (POS)
+      </a>
+    </div>
+  </div>
+
+  <div class="bg-surface rounded-2xl shadow-sm border border-border p-4">
+    <form method="get" class="flex flex-wrap gap-3 items-end">
+      <div>
+        <label class="block text-xs font-medium text-muted mb-1">From</label>
+        <input type="date" name="from" value="{{ filters.from }}" class="border border-border rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-muted mb-1">To</label>
+        <input type="date" name="to" value="{{ filters.to }}" class="border border-border rounded-lg px-3 py-2 text-sm">
+      </div>
+      {% if is_manager %}
+      <div>
+        <label class="block text-xs font-medium text-muted mb-1">Cashier</label>
+        <select name="cashier" class="border border-border rounded-lg px-3 py-2 text-sm min-w-[140px]">
+          <option value="">All staff</option>
+          {% for c in cashiers %}
+          <option value="{{ c.id }}" {% if filters.cashier == c.id|stringformat:"s" %}selected{% endif %}>{{ c.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <button type="submit" class="bg-foreground text-background px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">Filter</button>
+      <a href="{% url 'sales_list' %}" class="text-sm text-muted hover:text-primary py-2">Clear</a>
+    </form>
+  </div>
+
+  <div class="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="bg-background text-muted text-xs uppercase tracking-wider">
+            <th class="px-6 py-4 font-medium">Receipt #</th>
+            <th class="px-6 py-4 font-medium">Date & Time</th>
+            {% if is_manager %}<th class="px-6 py-4 font-medium">Cashier</th>{% endif %}
+            <th class="px-6 py-4 font-medium">Items</th>
+            <th class="px-6 py-4 font-medium">Discount</th>
+            <th class="px-6 py-4 font-medium">Total</th>
+            <th class="px-6 py-4 font-medium text-right">Receipt</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          {% for sale in sales %}
+          <tr class="hover:bg-background transition-colors">
+            <td class="px-6 py-4 font-mono text-sm text-foreground/80">{{ sale.id|slice:":8"|upper }}</td>
+            <td class="px-6 py-4 text-sm text-foreground/80">{{ sale.created_at|date:"M d, Y H:i" }}</td>
+            {% if is_manager %}
+            <td class="px-6 py-4 text-sm">{{ sale.cashier.username|default:"—" }}</td>
+            {% endif %}
+            <td class="px-6 py-4 text-sm text-muted">{{ sale.items.count }}</td>
+            <td class="px-6 py-4 text-sm">₦{{ sale.discount|floatformat:2 }}</td>
+            <td class="px-6 py-4 font-bold text-primary">₦{{ sale.grand_total|floatformat:2 }}</td>
+            <td class="px-6 py-4 text-right space-x-2">
+              <a href="{% url 'sale_receipt' sale.id %}" class="text-sm text-primary hover:underline font-medium">View</a>
+              <a href="{% url 'sale_receipt' sale.id %}?print=1" target="_blank" class="text-sm text-muted hover:text-primary font-medium">Print</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="{% if is_manager %}7{% else %}6{% endif %}" class="px-6 py-12 text-center text-muted">
+              No sales found. <a href="{% url 'pos' %}" class="text-primary hover:underline">Create a sale at POS</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if sales %}
+    <p class="text-xs text-muted/70 p-4 border-t border-border">Showing up to 200 most recent sales</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Receipt {{ receipt_no }} | InventoryPro{% endblock %}
+
+{% block content %}
+<style>
+  @media print {
+    aside, header, .no-print, nav { display: none !important; }
+    main { overflow: visible !important; }
+    body { background: white !important; color: black !important; }
+    .receipt-paper { box-shadow: none !important; border: none !important; margin: 0 !important; max-width: 80mm !important; background: white !important; color: black !important; }
+    .receipt-paper * { color: black !important; border-color: #ccc !important; }
+  }
+</style>
+
+<div class="max-w-lg mx-auto no-print mb-4 flex gap-3 justify-center">
+  <button onclick="window.print()" class="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-xl text-sm font-medium">
+    Print Receipt
+  </button>
+  <a href="{% url 'sales_list' %}" class="bg-surface border border-border text-foreground/80 px-5 py-2 rounded-xl text-sm font-medium hover:bg-background">
+    Back to Sales
+  </a>
+</div>
+
+<div class="receipt-paper bg-surface rounded-2xl shadow-sm border border-border p-8 max-w-md mx-auto font-mono text-sm text-foreground">
+  <div class="text-center border-b border-dashed border-border pb-4 mb-4">
+    <h1 class="text-lg font-bold font-sans text-foreground">{{ store_name }}</h1>
+    {% if store_address %}<p class="text-xs text-muted mt-1">{{ store_address }}</p>{% endif %}
+    {% if store_phone %}<p class="text-xs text-muted">Tel: {{ store_phone }}</p>{% endif %}
+    <p class="text-xs text-muted mt-2 uppercase tracking-wider">Sales Receipt</p>
+  </div>
+
+  <div class="space-y-1 text-xs mb-4">
+    <div class="flex justify-between"><span>Receipt #</span><span class="font-semibold">{{ receipt_no }}</span></div>
+    <div class="flex justify-between"><span>Date</span><span>{{ sale_date }}</span></div>
+    <div class="flex justify-between"><span>Time</span><span>{{ sale_time }}</span></div>
+    <div class="flex justify-between"><span>Cashier</span><span>{{ cashier_name }}</span></div>
+    <div class="flex justify-between"><span>Sale ID</span><span class="text-[10px] break-all">{{ sale.id }}</span></div>
+  </div>
+
+  <table class="w-full text-xs mb-4">
+    <thead>
+      <tr class="border-b border-border">
+        <th class="text-left py-2 font-sans font-semibold">Item</th>
+        <th class="text-center py-2 font-sans font-semibold">Qty</th>
+        <th class="text-right py-2 font-sans font-semibold">Amt</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr class="border-b border-border/60">
+        <td class="py-2 pr-2">
+          <div class="font-sans font-medium">{{ item.name }}</div>
+          <div class="text-[10px] text-muted/70">{{ item.barcode }}</div>
+        </td>
+        <td class="py-2 text-center">{{ item.quantity }}</td>
+        <td class="py-2 text-right">₦{{ item.subtotal|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="border-t border-dashed border-border pt-3 space-y-1 text-xs">
+    <div class="flex justify-between"><span>Subtotal</span><span>₦{{ sale.total_amount|floatformat:2 }}</span></div>
+    <div class="flex justify-between"><span>Discount</span><span>₦{{ sale.discount|floatformat:2 }}</span></div>
+    <div class="flex justify-between text-base font-bold font-sans pt-2">
+      <span>TOTAL</span>
+      <span>₦{{ sale.grand_total|floatformat:2 }}</span>
+    </div>
+  </div>
+
+  <p class="text-center text-[10px] text-muted/70 mt-6 pt-4 border-t border-dashed border-border">
+    Thank you for your purchase!<br>Powered by InventoryPro
+  </p>
+</div>
+
+{% if print_mode %}
+<script>window.addEventListener('load', () => window.print());</script>
+{% endif %}
+{% endblock %}

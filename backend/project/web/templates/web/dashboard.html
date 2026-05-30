@@ -1,0 +1,737 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | InventoryPro{% endblock %}
+
+{% block content %}
+<div class="space-y-6" id="dashboard-app" x-data="dashboardApp()" x-init="init()">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-foreground">Dashboard</h1>
+      <p class="text-muted text-sm mt-1">Live store performance — updates when sales are recorded</p>
+    </div>
+    <div class="flex items-center flex-wrap gap-3">
+      <div class="bg-surface px-4 py-2 rounded-xl shadow-sm border border-border flex items-center">
+        <div class="w-2 h-2 rounded-full mr-2" :class="isLive ? 'bg-green-500 animate-pulse' : 'bg-amber-500'"></div>
+        <span class="text-sm font-medium text-foreground/80" x-text="liveLabel"></span>
+      </div>
+      <div x-data class="bg-surface px-4 py-2 rounded-xl shadow-sm border border-border flex items-center">
+        <div class="w-2 h-2 rounded-full mr-2" :class="$store.sync.isOnline ? 'bg-green-500' : 'bg-red-500'"></div>
+        <span class="text-sm font-medium text-foreground/80" x-text="$store.sync.isOnline ? 'Online' : 'Offline'"></span>
+      </div>
+      <button @click="handleSyncClick()" :disabled="syncing" class="bg-surface hover:bg-background text-foreground/80 px-4 py-2 rounded-xl shadow-sm border border-border flex items-center transition-colors disabled:opacity-50">
+        <svg class="w-4 h-4 mr-2" :class="syncing && 'animate-spin'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        <span x-text="syncing ? 'Syncing…' : 'Sync'"></span> (<span x-text="$store.sync.queueCount"></span>)
+      </button>
+      <p class="text-xs text-emerald-600 font-medium w-full sm:w-auto" x-show="syncNotice" x-text="syncNotice"></p>
+      <p class="text-xs text-muted/70 w-full sm:w-auto" x-show="lastUpdated && !syncNotice">Updated <span x-text="lastUpdated"></span></p>
+    </div>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="bg-surface p-6 rounded-2xl shadow-sm border border-border">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-muted text-sm font-medium">Total Revenue</h3>
+        <div class="p-2 bg-emerald-500/10 rounded-lg"><svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+      </div>
+      <p class="text-3xl font-bold text-foreground">₦<span x-text="formatMoney(data.summary.total_revenue)"></span></p>
+    </div>
+    <div class="bg-surface p-6 rounded-2xl shadow-sm border border-border">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-muted text-sm font-medium">Today's Revenue</h3>
+        <div class="p-2 bg-secondary/10 rounded-lg"><svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg></div>
+      </div>
+      <p class="text-3xl font-bold text-foreground">₦<span x-text="formatMoney(data.summary.today_revenue)"></span></p>
+      <p class="text-xs text-muted mt-1"><span x-text="data.summary.today_sales_count"></span> sales today</p>
+    </div>
+    <div class="bg-surface p-6 rounded-2xl shadow-sm border border-border">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-muted text-sm font-medium">Total Sales</h3>
+        <div class="p-2 bg-primary/10 rounded-lg"><svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg></div>
+      </div>
+      <p class="text-3xl font-bold text-foreground" x-text="data.summary.sales_count"></p>
+    </div>
+    <a href="{% url 'low_stock' %}" class="bg-surface p-6 rounded-2xl shadow-sm border border-border block hover:border-red-500/40 transition-colors">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-muted text-sm font-medium">Low Stock Alerts</h3>
+        <div class="p-2 bg-red-500/10 rounded-lg"><svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div>
+      </div>
+      <p class="text-3xl font-bold text-foreground" x-text="data.summary.low_stock"></p>
+      <p class="text-xs text-primary mt-2 font-medium">View details →</p>
+    </a>
+  </div>
+
+  <!-- Earnings chart -->
+  <div class="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
+    <div class="px-6 py-5 border-b border-border bg-gradient-to-r from-primary/10 via-transparent to-secondary/10">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="flex items-start gap-3">
+          <div class="p-2.5 rounded-xl bg-primary/15 text-primary shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-foreground">Revenue Analytics</h3>
+            <p class="text-sm text-muted mt-0.5" x-text="'Viewing ' + earningsPeriodLabel"></p>
+          </div>
+        </div>
+        <div class="inline-flex bg-background/80 backdrop-blur rounded-xl p-1 border border-border shadow-sm">
+          <button type="button" @click="setEarningsPeriod('daily')" :class="earningsPeriod === 'daily' ? 'bg-surface shadow-sm text-primary ring-1 ring-border' : 'text-muted hover:text-foreground'" class="px-4 py-2 text-sm font-medium rounded-lg transition-all">Daily</button>
+          <button type="button" @click="setEarningsPeriod('weekly')" :class="earningsPeriod === 'weekly' ? 'bg-surface shadow-sm text-primary ring-1 ring-border' : 'text-muted hover:text-foreground'" class="px-4 py-2 text-sm font-medium rounded-lg transition-all">Weekly</button>
+          <button type="button" @click="setEarningsPeriod('monthly')" :class="earningsPeriod === 'monthly' ? 'bg-surface shadow-sm text-primary ring-1 ring-border' : 'text-muted hover:text-foreground'" class="px-4 py-2 text-sm font-medium rounded-lg transition-all">Monthly</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border border-b border-border">
+      <div class="bg-surface px-6 py-4">
+        <p class="text-xs font-medium text-muted uppercase tracking-wide">Period total</p>
+        <p class="text-xl font-bold text-foreground mt-1">₦<span x-text="formatMoney(earningsPeriodTotal())"></span></p>
+      </div>
+      <div class="bg-surface px-6 py-4">
+        <p class="text-xs font-medium text-muted uppercase tracking-wide">Best period</p>
+        <p class="text-xl font-bold text-primary mt-1">₦<span x-text="formatMoney(earningsPeak())"></span></p>
+        <p class="text-xs text-muted mt-0.5 truncate" x-text="earningsPeakLabel()"></p>
+      </div>
+      <div class="bg-surface px-6 py-4">
+        <p class="text-xs font-medium text-muted uppercase tracking-wide">Average</p>
+        <p class="text-xl font-bold text-secondary mt-1">₦<span x-text="formatMoney(earningsAverage())"></span></p>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <div class="relative rounded-xl border border-border bg-background/50 p-4" style="min-height: 20rem;">
+        <div x-show="!earningsHasData()" class="absolute inset-0 flex flex-col items-center justify-center text-center z-10 pointer-events-none">
+          <div class="w-14 h-14 rounded-full bg-muted/10 flex items-center justify-center mb-3">
+            <svg class="w-7 h-7 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+          </div>
+          <p class="text-sm font-medium text-foreground">No revenue in this period yet</p>
+          <p class="text-xs text-muted mt-1 max-w-xs">Sales from POS will appear here automatically.</p>
+        </div>
+        <div class="h-80">
+          <canvas id="earningsChart" aria-label="Revenue chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if is_manager %}
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <!-- Worker performance chart -->
+    <div class="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col">
+      <div class="px-6 py-5 border-b border-border">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-start gap-3">
+            <div class="p-2.5 rounded-xl bg-secondary/15 text-secondary shrink-0">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-foreground">Team Performance</h3>
+              <p class="text-sm text-muted mt-0.5" x-text="workerPeriodLabel"></p>
+            </div>
+          </div>
+          <div class="inline-flex bg-background rounded-xl p-1 border border-border">
+            <button type="button" @click="setWorkerPeriod('daily')" :class="workerPeriod === 'daily' ? 'bg-surface shadow-sm text-secondary ring-1 ring-border' : 'text-muted'" class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all">Today</button>
+            <button type="button" @click="setWorkerPeriod('weekly')" :class="workerPeriod === 'weekly' ? 'bg-surface shadow-sm text-secondary ring-1 ring-border' : 'text-muted'" class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all">Week</button>
+            <button type="button" @click="setWorkerPeriod('monthly')" :class="workerPeriod === 'monthly' ? 'bg-surface shadow-sm text-secondary ring-1 ring-border' : 'text-muted'" class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all">Month</button>
+          </div>
+        </div>
+      </div>
+      <div class="p-6 flex-1 flex flex-col">
+        <div class="relative rounded-xl border border-border bg-background/50 p-4 flex-1" style="min-height: 18rem;">
+          <div x-show="!workerHasData()" class="absolute inset-0 flex flex-col items-center justify-center text-center z-10 pointer-events-none">
+            <p class="text-sm text-muted">No staff sales for this period</p>
+          </div>
+          <div class="h-72">
+            <canvas id="workerChart" aria-label="Worker revenue chart"></canvas>
+          </div>
+        </div>
+        <p class="text-xs text-muted mt-3 text-center">Top performers ranked by revenue · tap bars for amounts</p>
+      </div>
+    </div>
+
+    <!-- Live activity feed -->
+    <div class="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col">
+      <div class="p-6 border-b border-border">
+        <h3 class="text-lg font-bold text-foreground">Live Activity</h3>
+        <p class="text-sm text-muted mt-1">Recent sales across all workers</p>
+      </div>
+      <div class="flex-1 overflow-y-auto max-h-80 divide-y divide-border" id="activity-feed">
+        <template x-if="data.recent_activity.length === 0">
+          <p class="p-6 text-center text-muted text-sm">No sales recorded yet.</p>
+        </template>
+        <template x-for="item in data.recent_activity" :key="item.sale_id">
+          <a :href="'/sales/' + item.sale_id + '/receipt/'" class="px-6 py-4 hover:bg-background transition-colors flex items-center justify-between block">
+            <div>
+              <p class="font-medium text-foreground" x-text="item.cashier"></p>
+              <p class="text-xs text-muted"><span x-text="item.items_count"></span> item(s) · <span x-text="item.date_display"></span></p>
+            </div>
+            <div class="text-right">
+              <p class="font-bold text-primary">₦<span x-text="formatMoney(item.amount)"></span></p>
+              <p class="text-xs text-primary font-medium">Receipt →</p>
+            </div>
+          </a>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- Worker table -->
+  <div class="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
+    <div class="p-6 border-b border-border">
+      <h3 class="text-lg font-bold text-foreground">Sales by Worker</h3>
+      <p class="text-sm text-muted mt-1">Daily, weekly, monthly, and all-time totals</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="bg-background text-muted text-xs uppercase tracking-wider">
+            <th class="px-6 py-4 font-medium">Worker</th>
+            <th class="px-6 py-4 font-medium">Today</th>
+            <th class="px-6 py-4 font-medium">This Week</th>
+            <th class="px-6 py-4 font-medium">This Month</th>
+            <th class="px-6 py-4 font-medium">All Time</th>
+            <th class="px-6 py-4 font-medium">Sales</th>
+            <th class="px-6 py-4 font-medium">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          <template x-for="worker in data.workers" :key="worker.id">
+            <tr class="hover:bg-background transition-colors">
+              <td class="px-6 py-4 font-medium text-foreground" x-text="worker.username"></td>
+              <td class="px-6 py-4 text-foreground/80">₦<span x-text="formatMoney(worker.daily_revenue)"></span></td>
+              <td class="px-6 py-4 text-foreground/80">₦<span x-text="formatMoney(worker.weekly_revenue)"></span></td>
+              <td class="px-6 py-4 text-foreground/80">₦<span x-text="formatMoney(worker.monthly_revenue)"></span></td>
+              <td class="px-6 py-4 text-primary font-bold">₦<span x-text="formatMoney(worker.total_revenue)"></span></td>
+              <td class="px-6 py-4 text-muted" x-text="worker.sales_count"></td>
+              <td class="px-6 py-4">
+                <span x-show="worker.is_active" class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">Active</span>
+                <span x-show="!worker.is_active" class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-300">Disabled</span>
+              </td>
+            </tr>
+          </template>
+          <template x-if="data.workers.length === 0">
+            <tr><td colspan="7" class="px-6 py-8 text-center text-muted">No staff members found.</td></tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+    <div class="p-4 bg-background border-t border-border text-center">
+      <p class="text-xs text-muted">Manage accounts in <a href="{% url 'staff_list' %}" class="text-primary hover:underline font-medium">Staff Members</a> or <a href="/admin/auth/user/" class="text-primary hover:underline font-medium">Django Admin</a></p>
+    </div>
+  </div>
+  {% else %}
+  <!-- Staff: personal activity -->
+  <div class="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
+    <div class="p-6 border-b border-border">
+      <h3 class="text-lg font-bold text-foreground">Your Recent Sales</h3>
+    </div>
+    <div class="divide-y divide-border max-h-96 overflow-y-auto">
+      <template x-if="data.recent_activity.length === 0">
+        <p class="p-6 text-center text-muted text-sm">No sales yet.</p>
+      </template>
+      <template x-for="item in data.recent_activity" :key="item.sale_id">
+        <div class="px-6 py-4 flex justify-between hover:bg-background">
+          <div>
+            <p class="text-sm text-muted" x-text="item.date_display"></p>
+            <p class="text-xs text-muted/70" x-text="item.time_display"></p>
+          </div>
+          <p class="font-bold text-primary">₦<span x-text="formatMoney(item.amount)"></span></p>
+        </div>
+      </template>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{{ dashboard_data|json_script:"dashboard-initial-data" }}
+<script>
+  function dashboardApp() {
+    const el = document.getElementById('dashboard-initial-data');
+    const INITIAL_DASHBOARD = el ? JSON.parse(el.textContent) : {};
+
+    return {
+      data: INITIAL_DASHBOARD,
+      wsConnected: false,
+      pollActive: true,
+      isLive: true,
+      liveLabel: 'Live',
+      lastUpdated: '',
+      earningsPeriod: 'daily',
+      workerPeriod: 'daily',
+      get earningsPeriodLabel() {
+        return { daily: 'last 7 days', weekly: 'last 8 weeks', monthly: 'last 12 months' }[this.earningsPeriod] || '';
+      },
+      get workerPeriodLabel() {
+        return { daily: "Today's sales by staff", weekly: "This week's sales by staff", monthly: "This month's sales by staff" }[this.workerPeriod] || '';
+      },
+      ws: null,
+      earningsChart: null,
+      workerChart: null,
+      _themeObserver: null,
+      reconnectTimer: null,
+      pollTimer: null,
+      channelsAvailable: {{ channels_enabled|yesno:"true,false" }},
+      syncing: false,
+      syncNotice: '',
+      _refreshHandler: null,
+      _syncNoticeTimer: null,
+      _visibilityHandler: null,
+
+      updateLiveStatus() {
+        this.isLive = this.wsConnected || this.pollActive;
+        if (this.wsConnected) {
+          this.liveLabel = 'Live';
+        } else if (this.pollActive) {
+          this.liveLabel = 'Live (auto-refresh)';
+        } else {
+          this.liveLabel = 'Connecting…';
+        }
+      },
+
+      init() {
+        if (INITIAL_DASHBOARD.updated_at) {
+          this.setLastUpdated(INITIAL_DASHBOARD.updated_at);
+        }
+        this.updateLiveStatus();
+
+        this._refreshHandler = (e) => this.refreshAfterSync(e.detail || {});
+        window.addEventListener('dashboard:refresh', this._refreshHandler);
+        this._visibilityHandler = () => {
+          if (!document.hidden) this.fetchStats();
+        };
+        document.addEventListener('visibilitychange', this._visibilityHandler);
+
+        this.startPolling(3000);
+
+        this.$nextTick(() => {
+          try {
+            if (typeof Chart === 'undefined') {
+              console.error('Chart.js not loaded — check static/vendor/chart.umd.min.js');
+              return;
+            }
+            this.initCharts();
+            this.watchThemeChanges();
+          } catch (e) {
+            console.error('Chart init failed', e);
+          }
+          if (this.channelsAvailable) {
+            this.connectWebSocket();
+          }
+        });
+      },
+
+      watchThemeChanges() {
+        this._themeObserver = new MutationObserver(() => this.refreshChartTheme());
+        this._themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+      },
+
+      getChartTheme() {
+        const root = document.documentElement;
+        const s = getComputedStyle(root);
+        const p = s.getPropertyValue('--c-primary').trim() || '37 99 235';
+        const sec = s.getPropertyValue('--c-secondary').trim() || '16 185 129';
+        const fg = s.getPropertyValue('--c-foreground').trim() || '15 23 42';
+        const border = s.getPropertyValue('--c-border').trim() || '226 232 240';
+        const muted = s.getPropertyValue('--c-muted').trim() || '100 116 139';
+        const dark = root.classList.contains('dark');
+        return {
+          primary: `rgb(${p})`,
+          secondary: `rgb(${sec})`,
+          primaryAlpha: (a) => `rgba(${p}, ${a})`,
+          secondaryAlpha: (a) => `rgba(${sec}, ${a})`,
+          axis: `rgb(${fg} / ${dark ? 0.7 : 0.65})`,
+          grid: `rgb(${border} / ${dark ? 0.4 : 0.55})`,
+          tooltipBg: `rgb(${dark ? '15 23 42' : '255 255 255'} / 0.96)`,
+          tooltipBorder: `rgb(${border})`,
+          tooltipText: `rgb(${fg})`,
+          muted: `rgb(${muted})`,
+        };
+      },
+
+      makeGradient(ctx, colorRgb, height = 280) {
+        const g = ctx.createLinearGradient(0, 0, 0, height);
+        g.addColorStop(0, colorRgb(0.35));
+        g.addColorStop(0.55, colorRgb(0.08));
+        g.addColorStop(1, colorRgb(0));
+        return g;
+      },
+
+      currentEarningsSeries() {
+        if (!this.data.earnings) return { labels: [], values: [] };
+        const real = this.data.earnings[this.earningsPeriod] || { labels: [], values: [] };
+        const hasReal = real.values && real.values.some(v => Number(v) > 0);
+        if (hasReal || !('{{ debug }}' === 'True')) {
+          return real;
+        }
+        // Demo-only fallback (debug mode, no real data) – does not touch the database
+        if (this.earningsPeriod === 'daily') {
+          return {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            values: [52000, 88000, 76000, 94000, 132000, 118000, 101000],
+          };
+        }
+        if (this.earningsPeriod === 'weekly') {
+          return {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
+            values: [420000, 510000, 480000, 560000, 610000, 590000, 640000, 670000],
+          };
+        }
+        return {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+          values: [1800000, 1950000, 2100000, 2050000, 2300000, 2450000, 2380000, 2520000, 2610000, 2740000, 2800000, 2950000],
+        };
+      },
+
+      earningsHasData() {
+        const s = this.currentEarningsSeries();
+        return s.values && s.values.some(v => Number(v) > 0);
+      },
+
+      earningsPeriodTotal() {
+        const s = this.currentEarningsSeries();
+        return (s.values || []).reduce((a, b) => a + Number(b || 0), 0);
+      },
+
+      earningsPeak() {
+        const s = this.currentEarningsSeries();
+        if (!s.values || !s.values.length) return 0;
+        return Math.max(...s.values.map(v => Number(v) || 0));
+      },
+
+      earningsPeakLabel() {
+        const s = this.currentEarningsSeries();
+        if (!s.values || !s.values.length) return '—';
+        const max = this.earningsPeak();
+        const i = s.values.findIndex(v => Number(v) === max);
+        return s.labels[i] || '—';
+      },
+
+      earningsAverage() {
+        const s = this.currentEarningsSeries();
+        if (!s.values || !s.values.length) return 0;
+        return this.earningsPeriodTotal() / s.values.length;
+      },
+
+      workerHasData() {
+        if (!this.data.workers || !this.data.workers.length) return false;
+        const key = this.workerPeriod + '_revenue';
+        return this.data.workers.some(w => Number(w[key] || 0) > 0);
+      },
+
+      baseChartOptions(theme) {
+        return {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 450, easing: 'easeOutQuart' },
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: theme.tooltipBg,
+              titleColor: theme.tooltipText,
+              bodyColor: theme.muted,
+              borderColor: theme.tooltipBorder,
+              borderWidth: 1,
+              padding: 12,
+              cornerRadius: 10,
+              displayColors: true,
+              callbacks: {
+                label: (ctx) => {
+                  const v = ctx.parsed.y ?? ctx.parsed.x ?? 0;
+                  return ' ₦' + Number(v).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+                },
+              },
+            },
+          },
+        };
+      },
+
+      refreshChartTheme() {
+        if (this.earningsChart) {
+          this.earningsChart.destroy();
+          this.earningsChart = null;
+        }
+        {% if is_manager %}
+        if (this.workerChart) {
+          this.workerChart.destroy();
+          this.workerChart = null;
+        }
+        {% endif %}
+        this.initCharts();
+      },
+
+      async handleSyncClick() {
+        this.syncing = true;
+        try {
+          await Alpine.store('sync').attemptSync();
+        } finally {
+          this.syncing = false;
+        }
+      },
+
+      refreshAfterSync(detail = {}) {
+        this.fetchStats();
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({ action: 'refresh' }));
+        }
+        if (detail.synced > 0 || detail.source === 'pos_checkout') {
+          const n = detail.synced || 1;
+          this.syncNotice = `Charts updated — ${n} sale(s) recorded`;
+          clearTimeout(this._syncNoticeTimer);
+          this._syncNoticeTimer = setTimeout(() => { this.syncNotice = ''; }, 4000);
+        }
+      },
+
+      formatMoney(n) {
+        const num = Number(n) || 0;
+        return num.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      },
+
+      setLastUpdated(iso) {
+        if (!iso) return;
+        const d = new Date(iso);
+        this.lastUpdated = d.toLocaleTimeString();
+      },
+
+      applyData(payload) {
+        this.data = payload;
+        this.setLastUpdated(payload.updated_at);
+        this.updateEarningsChart();
+        {% if is_manager %}
+        this.updateWorkerChart();
+        {% endif %}
+      },
+
+      setEarningsPeriod(period) {
+        this.earningsPeriod = period;
+        this.updateEarningsChart();
+      },
+
+      setWorkerPeriod(period) {
+        this.workerPeriod = period;
+        this.updateWorkerChart();
+      },
+
+      initCharts() {
+        const theme = this.getChartTheme();
+        const earningsCanvas = document.getElementById('earningsChart');
+        if (earningsCanvas && !this.earningsChart) {
+          const ctx = earningsCanvas.getContext('2d');
+          const fill = this.makeGradient(ctx, theme.primaryAlpha, 320);
+          const opts = this.baseChartOptions(theme);
+          opts.scales = {
+            x: {
+              ticks: { color: theme.axis, maxRotation: 45, minRotation: 0, font: { size: 11 } },
+              grid: { display: false },
+              border: { display: false },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: theme.axis,
+                font: { size: 11 },
+                maxTicksLimit: 6,
+                callback: (v) => {
+                  if (v >= 1000000) return '₦' + (v / 1000000).toFixed(1) + 'M';
+                  if (v >= 1000) return '₦' + (v / 1000).toFixed(0) + 'k';
+                  return '₦' + v;
+                },
+              },
+              grid: { color: theme.grid, drawBorder: false },
+              border: { display: false },
+            },
+          };
+          this.earningsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: [],
+              datasets: [{
+                label: 'Revenue',
+                data: [],
+                borderColor: theme.primary,
+                backgroundColor: fill,
+                borderWidth: 2.5,
+                pointBackgroundColor: theme.primary,
+                pointBorderColor: theme.tooltipBg,
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                pointHoverBorderWidth: 2,
+                fill: true,
+                tension: 0.4,
+              }],
+            },
+            options: opts,
+          });
+        }
+
+        {% if is_manager %}
+        const workerCanvas = document.getElementById('workerChart');
+        if (workerCanvas && !this.workerChart) {
+          const wctx = workerCanvas.getContext('2d');
+          const wopts = this.baseChartOptions(theme);
+          wopts.indexAxis = 'y';
+          wopts.scales = {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                color: theme.axis,
+                font: { size: 10 },
+                callback: (v) => v >= 1000 ? '₦' + (v / 1000).toFixed(0) + 'k' : '₦' + v,
+              },
+              grid: { color: theme.grid, drawBorder: false },
+              border: { display: false },
+            },
+            y: {
+              ticks: { color: theme.axis, font: { size: 11, weight: '500' } },
+              grid: { display: false },
+              border: { display: false },
+            },
+          };
+          this.workerChart = new Chart(wctx, {
+            type: 'bar',
+            data: {
+              labels: [],
+              datasets: [{
+                label: 'Revenue',
+                data: [],
+                backgroundColor: theme.secondaryAlpha(0.75),
+                hoverBackgroundColor: theme.secondary,
+                borderRadius: 8,
+                borderSkipped: false,
+                maxBarThickness: 28,
+              }],
+            },
+            options: wopts,
+          });
+        }
+        {% endif %}
+
+        this.updateEarningsChart();
+        {% if is_manager %}
+        this.updateWorkerChart();
+        {% endif %}
+        this.setLastUpdated(this.data.updated_at);
+      },
+
+      updateEarningsChart() {
+        if (!this.earningsChart || !this.data.earnings) return;
+        const series = this.currentEarningsSeries();
+        const theme = this.getChartTheme();
+        const ctx = this.earningsChart.ctx;
+        this.earningsChart.data.labels = series.labels;
+        this.earningsChart.data.datasets[0].data = series.values;
+        this.earningsChart.data.datasets[0].backgroundColor = this.makeGradient(ctx, theme.primaryAlpha, 320);
+        this.earningsChart.data.datasets[0].borderColor = theme.primary;
+        this.earningsChart.data.datasets[0].pointBackgroundColor = theme.primary;
+        this.earningsChart.update('active');
+      },
+
+      updateWorkerChart() {
+        if (!this.workerChart || !this.data.workers) return;
+        const key = this.workerPeriod + '_revenue';
+        const rows = [...this.data.workers]
+          .map(w => ({ name: w.username, value: Number(w[key] ?? 0) }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 8);
+        const theme = this.getChartTheme();
+        this.workerChart.data.labels = rows.map(r => r.name);
+        this.workerChart.data.datasets[0].data = rows.map(r => r.value);
+        this.workerChart.data.datasets[0].backgroundColor = rows.map((_, i) =>
+          theme.secondaryAlpha(Math.max(0.35, 0.9 - i * 0.08))
+        );
+        this.workerChart.update('active');
+      },
+
+      async fetchStats() {
+        try {
+          const res = await fetch('{% url "dashboard_stats" %}?_=' + Date.now(), {
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: { 'Accept': 'application/json' },
+          });
+          if (res.ok) {
+            const payload = await res.json();
+            this.applyData(payload);
+            this.pollActive = true;
+            this.updateLiveStatus();
+          } else {
+            console.warn('Dashboard stats HTTP', res.status);
+          }
+        } catch (e) {
+          console.error('Dashboard stats fetch failed', e);
+        }
+      },
+
+      startPolling(intervalMs = 3000) {
+        clearInterval(this.pollTimer);
+        this.fetchStats();
+        this.pollTimer = setInterval(() => this.fetchStats(), intervalMs);
+      },
+
+      connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const url = `${protocol}//${window.location.host}/ws/dashboard/`;
+
+        if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+          return;
+        }
+
+        if (this.ws) {
+          this.ws.close();
+        }
+
+        this.ws = new WebSocket(url);
+
+        this.ws.onopen = () => {
+          this.wsConnected = true;
+          this.updateLiveStatus();
+          this.fetchStats();
+        };
+
+        this.ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'dashboard_update' && msg.data) {
+              this.applyData(msg.data);
+              this.wsConnected = true;
+              this.pollActive = true;
+              this.updateLiveStatus();
+            }
+          } catch (e) {
+            console.error('Dashboard WS parse error', e);
+          }
+        };
+
+        this.ws.onclose = () => {
+          this.wsConnected = false;
+          this.updateLiveStatus();
+          clearTimeout(this.reconnectTimer);
+          this.reconnectTimer = setTimeout(() => this.connectWebSocket(), 4000);
+        };
+
+        this.ws.onerror = () => {
+          this.wsConnected = false;
+          this.updateLiveStatus();
+        };
+      },
+
+      destroy() {
+        if (this._refreshHandler) {
+          window.removeEventListener('dashboard:refresh', this._refreshHandler);
+        }
+        if (this._visibilityHandler) {
+          document.removeEventListener('visibilitychange', this._visibilityHandler);
+        }
+        if (this._themeObserver) this._themeObserver.disconnect();
+        if (this.earningsChart) this.earningsChart.destroy();
+        if (this.workerChart) this.workerChart.destroy();
+        if (this.ws) this.ws.close();
+        clearTimeout(this.reconnectTimer);
+        clearTimeout(this._syncNoticeTimer);
+        clearInterval(this.pollTimer);
+      }
+    };
+  }
+</script>
+{% endblock %}

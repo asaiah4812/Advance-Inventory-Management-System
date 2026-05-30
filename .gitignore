@@ -6,8 +6,9 @@ __pycache__/
 .Python
 *.egg
 *.egg-info/
-dist/
-build/
+
+# Frontend / Expo build output
+frontend/dist/
 *.manifest
 *.spec
 

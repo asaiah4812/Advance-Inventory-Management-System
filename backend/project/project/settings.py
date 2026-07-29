@@ -10,22 +10,33 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+from dotenv import load_dotenv
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-xbu&b3zx_5m1vbn%)r33wkabga2hn1s%znh)&*j41wuuz%h+ji'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-xbu&b3zx_5m1vbn%)r33wkabga2hn1s%znh)&*j41wuuz%h+ji')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ['true', '1', 'yes']
 
-ALLOWED_HOSTS = ['192.168.188.111', 'localhost', '127.0.0.1']
+# Mobile / LAN testing: any host when DEBUG=True, or set DJANGO_ALLOWED_HOSTS=192.168.1.5,localhost
+_allowed_hosts = os.environ.get('DJANGO_ALLOWED_HOSTS', '').strip()
+if _allowed_hosts:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(',') if h.strip()]
+elif DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.vercel.app']
 
 
 # Application definition
@@ -36,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -104,10 +116,34 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+import dj_database_url
+
 DATABASES = {
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True
+    ) if os.getenv('DATABASE_URL') else {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('MYSQL_DATABASE', 'inventory_db'),
+        'USER': os.getenv('MYSQL_USER', 'root'),
+        'PASSWORD': os.getenv('MYSQL_PASSWORD', ''),
+        'HOST': os.getenv('MYSQL_HOST', '127.0.0.1'),
+        'PORT': os.getenv('MYSQL_PORT', '3306'),
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
+    }
+}
+
+CACHES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': BASE_DIR / 'django_cache',
+        'TIMEOUT': 300,
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000
+        }
     }
 }
 
@@ -167,9 +203,27 @@ REST_FRAMEWORK = {
     ),
 }
 
-import os
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Cloudinary Storage settings
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+}
+
+if CLOUDINARY_STORAGE['CLOUD_NAME']:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django_cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django_cloudinary_storage.storage.StaticHashedCloudinaryStorage",
+        },
+    }
 
 # Receipt / store info (shown on printed receipts)
 STORE_NAME = 'MyDream Inventory'

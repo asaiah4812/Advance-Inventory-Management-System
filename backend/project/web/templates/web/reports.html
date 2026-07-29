@@ -3,252 +3,519 @@
 {% block title %}Reports | InventoryPro{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-  <div>
-    <h1 class="text-2xl font-bold text-foreground">Reports</h1>
-    <p class="text-sm text-muted mt-1">Sales performance and top products</p>
-  </div>
-
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm">
-      <p class="text-xs text-muted uppercase font-medium">Today</p>
-      <p class="text-2xl font-bold text-foreground mt-1">₦{{ summary.today.revenue|default:0|floatformat:2 }}</p>
-      <p class="text-xs text-muted/70 mt-1">{{ summary.today.count|default:0 }} sales</p>
+<div class="space-y-8" id="reports-page">
+  <!-- Header -->
+  <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-foreground">Reports & Analytics</h1>
+      <p class="text-sm text-muted mt-1">Detailed sales, inventory, and team performance — Chart.js runs offline from your server</p>
     </div>
-    <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm">
-      <p class="text-xs text-muted uppercase font-medium">This Week</p>
-      <p class="text-2xl font-bold text-foreground mt-1">₦{{ summary.week.revenue|default:0|floatformat:2 }}</p>
-      <p class="text-xs text-muted/70 mt-1">{{ summary.week.count|default:0 }} sales</p>
-    </div>
-    <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm">
-      <p class="text-xs text-muted uppercase font-medium">This Month</p>
-      <p class="text-2xl font-bold text-foreground mt-1">₦{{ summary.month.revenue|default:0|floatformat:2 }}</p>
-      <p class="text-xs text-muted/70 mt-1">{{ summary.month.count|default:0 }} sales</p>
-    </div>
-    <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm">
-      <p class="text-xs text-muted uppercase font-medium">All Time</p>
-      <p class="text-2xl font-bold text-primary mt-1">₦{{ summary.all_time.revenue|default:0|floatformat:2 }}</p>
-      <p class="text-xs text-muted/70 mt-1">{{ summary.all_time.count|default:0 }} sales</p>
+    <div class="flex flex-wrap items-center gap-3 text-sm">
+      <span class="px-3 py-1.5 rounded-lg bg-surface border border-border text-muted">Generated {{ generated_at }}</span>
+      <a href="{% url 'dashboard' %}" class="text-primary font-medium hover:underline">← Live dashboard</a>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-    <section class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
-      <header class="px-6 py-5 border-b border-border bg-gradient-to-r from-primary/10 to-transparent">
-        <h3 class="font-bold text-foreground">Daily Revenue (7 Days)</h3>
-        <p class="text-xs text-muted mt-1">Daily sales trend and momentum</p>
-      </header>
-      <div class="p-6">
-        <div class="grid grid-cols-3 gap-px bg-border rounded-xl overflow-hidden mb-4 border border-border">
-          <div class="bg-surface px-3 py-2">
-            <p class="text-[11px] uppercase text-muted font-medium">Total</p>
-            <p class="text-sm font-bold text-foreground" id="dailyTotal">₦0.00</p>
-          </div>
-          <div class="bg-surface px-3 py-2">
-            <p class="text-[11px] uppercase text-muted font-medium">Peak</p>
-            <p class="text-sm font-bold text-primary" id="dailyPeak">₦0.00</p>
-          </div>
-          <div class="bg-surface px-3 py-2">
-            <p class="text-[11px] uppercase text-muted font-medium">Avg</p>
-            <p class="text-sm font-bold text-secondary" id="dailyAvg">₦0.00</p>
+  <!-- Sales KPIs -->
+  <section>
+    <h2 class="text-sm font-semibold text-muted uppercase tracking-wider mb-3">Sales summary</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs text-muted uppercase font-medium">Today</p>
+          <span class="p-1.5 rounded-lg bg-primary/10 text-primary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </span>
+        </div>
+        <p class="text-2xl font-bold text-foreground">₦{{ summary.today.revenue|default:0|floatformat:2 }}</p>
+        <p class="text-xs text-muted mt-1">{{ summary.today.count|default:0 }} transaction(s)</p>
+      </div>
+      <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs text-muted uppercase font-medium">This week</p>
+          <span class="p-1.5 rounded-lg bg-secondary/10 text-secondary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </span>
+        </div>
+        <p class="text-2xl font-bold text-foreground">₦{{ summary.week.revenue|default:0|floatformat:2 }}</p>
+        <p class="text-xs text-muted mt-1">{{ summary.week.count|default:0 }} transaction(s)</p>
+      </div>
+      <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs text-muted uppercase font-medium">This month</p>
+          <span class="p-1.5 rounded-lg bg-primary/10 text-primary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </span>
+        </div>
+        <p class="text-2xl font-bold text-foreground">₦{{ summary.month.revenue|default:0|floatformat:2 }}</p>
+        <p class="text-xs text-muted mt-1">{{ summary.month.count|default:0 }} transaction(s)</p>
+      </div>
+      <div class="bg-surface p-5 rounded-2xl border border-border shadow-sm ring-1 ring-primary/20">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs text-muted uppercase font-medium">All time</p>
+          <span class="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          </span>
+        </div>
+        <p class="text-2xl font-bold text-primary">₦{{ summary.all_time.revenue|default:0|floatformat:2 }}</p>
+        <p class="text-xs text-muted mt-1">{{ summary.all_time.count|default:0 }} transaction(s)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Revenue charts -->
+  <section>
+    <h2 class="text-sm font-semibold text-muted uppercase tracking-wider mb-3">Revenue trends</h2>
+    <div class="space-y-6">
+      {% include "web/partials/report_chart_block.html" with chart_id="reportDailyChart" kpi_prefix="daily" title="Daily revenue" subtitle="Last 7 days — line chart" gradient="from-primary/10" color="primary" breakdown=daily_breakdown only %}
+      {% include "web/partials/report_chart_block.html" with chart_id="reportWeeklyChart" kpi_prefix="weekly" title="Weekly revenue" subtitle="Last 8 weeks — line chart" gradient="from-secondary/10" color="secondary" breakdown=weekly_breakdown only %}
+      {% include "web/partials/report_chart_block.html" with chart_id="reportMonthlyChart" kpi_prefix="monthly" title="Monthly revenue" subtitle="Last 12 months — line chart" gradient="from-primary/10 via-secondary/5" color="primary" breakdown=monthly_breakdown only %}
+    </div>
+  </section>
+
+  <!-- Inventory -->
+  <section>
+    <h2 class="text-sm font-semibold text-muted uppercase tracking-wider mb-3">Inventory analytics</h2>
+    <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-border bg-gradient-to-r from-emerald-500/10 via-transparent to-primary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-bold text-foreground">Stock overview</h3>
+          <p class="text-sm text-muted mt-0.5">{{ inventory.total_products }} products · {{ inventory.total_units }} units · ₦{{ inventory.total_value|floatformat:2 }} value</p>
+        </div>
+        <a href="{% url 'inventory' %}" class="text-sm font-medium text-primary hover:underline">Manage catalog →</a>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+        <div class="rounded-xl border border-border bg-background/50 p-4">
+          <h4 class="text-sm font-semibold text-foreground">Stock health</h4>
+          <p class="text-xs text-muted mb-3">Doughnut chart</p>
+          <div class="h-52 relative">
+            <div id="invHealthEmpty" class="hidden absolute inset-0 flex items-center justify-center text-sm text-muted">No inventory data</div>
+            <canvas id="reportInvHealthChart"></canvas>
           </div>
         </div>
-        <div class="relative rounded-xl border border-border bg-background/50 p-4">
-          <div id="dailyEmpty" class="hidden absolute inset-0 z-10 items-center justify-center text-center">
-            <p class="text-sm text-muted">No daily revenue yet.</p>
-          </div>
-          <div class="h-64"><canvas id="reportDailyChart"></canvas></div>
+        <div class="rounded-xl border border-border bg-background/50 p-4">
+          <h4 class="text-sm font-semibold text-foreground">Units by category</h4>
+          <p class="text-xs text-muted mb-3">Vertical bar chart</p>
+          <div class="h-52"><canvas id="reportInvCategoryChart"></canvas></div>
+        </div>
+        <div class="rounded-xl border border-border bg-background/50 p-4">
+          <h4 class="text-sm font-semibold text-foreground">Top stock levels</h4>
+          <p class="text-xs text-muted mb-3">Horizontal bar chart</p>
+          <div class="h-52"><canvas id="reportInvTopChart"></canvas></div>
         </div>
       </div>
-    </section>
-
-    <section class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
-      <header class="px-6 py-5 border-b border-border bg-gradient-to-r from-secondary/10 to-transparent">
-        <h3 class="font-bold text-foreground">Weekly Revenue</h3>
-        <p class="text-xs text-muted mt-1">Weekly trend across recent periods</p>
-      </header>
-      <div class="p-6">
-        <div class="grid grid-cols-3 gap-px bg-border rounded-xl overflow-hidden mb-4 border border-border">
-          <div class="bg-surface px-3 py-2">
-            <p class="text-[11px] uppercase text-muted font-medium">Total</p>
-            <p class="text-sm font-bold text-foreground" id="weeklyTotal">₦0.00</p>
-          </div>
-          <div class="bg-surface px-3 py-2">
-            <p class="text-[11px] uppercase text-muted font-medium">Peak</p>
-            <p class="text-sm font-bold text-primary" id="weeklyPeak">₦0.00</p>
-          </div>
-          <div class="bg-surface px-3 py-2">
-            <p class="text-[11px] uppercase text-muted font-medium">Avg</p>
-            <p class="text-sm font-bold text-secondary" id="weeklyAvg">₦0.00</p>
-          </div>
-        </div>
-        <div class="relative rounded-xl border border-border bg-background/50 p-4">
-          <div id="weeklyEmpty" class="hidden absolute inset-0 z-10 items-center justify-center text-center">
-            <p class="text-sm text-muted">No weekly revenue yet.</p>
-          </div>
-          <div class="h-64"><canvas id="reportWeeklyChart"></canvas></div>
-        </div>
+      <div class="border-t border-border overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="bg-background text-muted text-xs uppercase">
+              <th class="px-6 py-3 font-medium">Category</th>
+              <th class="px-6 py-3 font-medium">Products</th>
+              <th class="px-6 py-3 font-medium">Units</th>
+              <th class="px-6 py-3 font-medium">Stock value</th>
+              <th class="px-6 py-3 font-medium w-40">Share of units</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            {% for cat in inventory.by_category %}
+            <tr class="hover:bg-background/80">
+              <td class="px-6 py-3 font-medium text-foreground">{{ cat.name }}</td>
+              <td class="px-6 py-3 text-muted">{{ cat.product_count }}</td>
+              <td class="px-6 py-3 text-foreground">{{ cat.units }}</td>
+              <td class="px-6 py-3 text-primary font-semibold">₦{{ cat.value|floatformat:2 }}</td>
+              <td class="px-6 py-3">
+                {% widthratio cat.units inventory.total_units 100 as pct %}
+                <div class="flex items-center gap-2">
+                  <div class="flex-1 h-2 rounded-full bg-border overflow-hidden">
+                    <div class="h-full bg-primary rounded-full" style="width: {% if inventory.total_units %}{{ pct }}{% else %}0{% endif %}%"></div>
+                  </div>
+                  <span class="text-xs text-muted w-8">{% if inventory.total_units %}{{ pct }}%{% else %}—{% endif %}</span>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-6 py-8 text-center text-muted">No categories yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
 
-  <div class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
-    <div class="p-6 border-b border-border">
-      <h3 class="font-bold text-foreground">Top Selling Products</h3>
+  <!-- Top products detail -->
+  <section class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+    <div class="px-6 py-5 border-b border-border">
+      <h3 class="text-lg font-bold text-foreground">Top selling products</h3>
+      <p class="text-sm text-muted mt-0.5">Ranked by revenue with share of top performers</p>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-left">
         <thead>
           <tr class="bg-background text-muted text-xs uppercase">
-            <th class="px-6 py-4">Product</th>
-            <th class="px-6 py-4">Units Sold</th>
-            <th class="px-6 py-4">Revenue</th>
+            <th class="px-6 py-4 font-medium">#</th>
+            <th class="px-6 py-4 font-medium">Product</th>
+            <th class="px-6 py-4 font-medium">Barcode</th>
+            <th class="px-6 py-4 font-medium">Category</th>
+            <th class="px-6 py-4 font-medium">Units sold</th>
+            <th class="px-6 py-4 font-medium">Revenue</th>
+            <th class="px-6 py-4 font-medium w-48">Share</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
           {% for row in top_products %}
-          <tr class="hover:bg-background">
-            <td class="px-6 py-4 font-medium text-foreground">{{ row.product__name }}</td>
-            <td class="px-6 py-4 text-foreground/80">{{ row.qty }}</td>
+          <tr class="hover:bg-background/80">
+            <td class="px-6 py-4 text-muted font-medium">{{ forloop.counter }}</td>
+            <td class="px-6 py-4 font-medium text-foreground">{{ row.name }}</td>
+            <td class="px-6 py-4 text-muted font-mono text-xs">{{ row.barcode }}</td>
+            <td class="px-6 py-4 text-muted">{{ row.category }}</td>
+            <td class="px-6 py-4 text-foreground">{{ row.qty }}</td>
             <td class="px-6 py-4 text-primary font-bold">₦{{ row.revenue|floatformat:2 }}</td>
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-2">
+                <div class="flex-1 h-2.5 rounded-full bg-border overflow-hidden">
+                  <div class="h-full bg-secondary rounded-full transition-all" style="width: {{ row.share }}%"></div>
+                </div>
+                <span class="text-xs font-medium text-muted w-10">{{ row.share }}%</span>
+              </div>
+            </td>
           </tr>
           {% empty %}
-          <tr><td colspan="3" class="px-6 py-10 text-center text-muted">No sales data yet.</td></tr>
+          <tr><td colspan="7" class="px-6 py-12 text-center text-muted">No sales data yet. Record sales from POS to populate this report.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
+
+  <!-- Workers -->
+  {% if workers %}
+  <section class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+    <div class="px-6 py-5 border-b border-border bg-gradient-to-r from-secondary/10 to-transparent">
+      <h3 class="text-lg font-bold text-foreground">Sales by team member</h3>
+      <p class="text-sm text-muted mt-0.5">Daily, weekly, monthly, and lifetime totals</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="bg-background text-muted text-xs uppercase">
+            <th class="px-6 py-3 font-medium">Staff</th>
+            <th class="px-6 py-3 font-medium">Today</th>
+            <th class="px-6 py-3 font-medium">This week</th>
+            <th class="px-6 py-3 font-medium">This month</th>
+            <th class="px-6 py-3 font-medium">All time</th>
+            <th class="px-6 py-3 font-medium"># Sales</th>
+            <th class="px-6 py-3 font-medium">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          {% for w in workers %}
+          <tr class="hover:bg-background/80">
+            <td class="px-6 py-3 font-medium text-foreground">{{ w.username }}</td>
+            <td class="px-6 py-3">₦{{ w.daily_revenue|floatformat:2 }}</td>
+            <td class="px-6 py-3">₦{{ w.weekly_revenue|floatformat:2 }}</td>
+            <td class="px-6 py-3">₦{{ w.monthly_revenue|floatformat:2 }}</td>
+            <td class="px-6 py-3 font-bold text-primary">₦{{ w.total_revenue|floatformat:2 }}</td>
+            <td class="px-6 py-3 text-muted">{{ w.sales_count }}</td>
+            <td class="px-6 py-3">
+              {% if w.is_active %}
+              <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">Active</span>
+              {% else %}
+              <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-300">Disabled</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Low stock -->
+  <section class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+    <div class="px-6 py-5 border-b border-border flex items-center justify-between">
+      <div>
+        <h3 class="text-lg font-bold text-foreground">Low stock alerts</h3>
+        <p class="text-sm text-muted mt-0.5">Products at or below their reorder threshold</p>
+      </div>
+      <a href="{% url 'low_stock' %}" class="text-sm font-medium text-primary hover:underline">View all →</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="bg-background text-muted text-xs uppercase">
+            <th class="px-6 py-3 font-medium">Product</th>
+            <th class="px-6 py-3 font-medium">Barcode</th>
+            <th class="px-6 py-3 font-medium">Category</th>
+            <th class="px-6 py-3 font-medium">On hand</th>
+            <th class="px-6 py-3 font-medium">Threshold</th>
+            <th class="px-6 py-3 font-medium">Value</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          {% for p in low_stock_products %}
+          <tr class="hover:bg-background/80">
+            <td class="px-6 py-3 font-medium text-foreground">{{ p.name }}</td>
+            <td class="px-6 py-3 font-mono text-xs text-muted">{{ p.barcode }}</td>
+            <td class="px-6 py-3 text-muted">{{ p.category }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-300">{{ p.stock_quantity }}</span>
+            </td>
+            <td class="px-6 py-3 text-muted">{{ p.low_stock_threshold }}</td>
+            <td class="px-6 py-3 text-muted">₦{{ p.value|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="px-6 py-10 text-center text-muted">All products are above their low-stock threshold.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>
 
 <script>
-  const daily = {{ earnings_daily_json|safe }};
-  const weekly = {{ earnings_weekly_json|safe }};
-  let reportCharts = [];
+'use strict';
+const daily   = {{ earnings_daily_json|safe }};
+const weekly  = {{ earnings_weekly_json|safe }};
+const monthly = {{ earnings_monthly_json|safe }};
+const inventory = {{ inventory_json|safe }};
 
-  const money = (n) => '₦' + Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/* ── tiny theme helper (same as ChartKit but inline so we own it) ── */
+function rTheme() {
+  const s = getComputedStyle(document.documentElement);
+  const p   = s.getPropertyValue('--c-primary').trim()    || '37 99 235';
+  const sec = s.getPropertyValue('--c-secondary').trim()  || '16 185 129';
+  const fg  = s.getPropertyValue('--c-foreground').trim() || '15 23 42';
+  const bdr = s.getPropertyValue('--c-border').trim()     || '226 232 240';
+  const dk  = document.documentElement.classList.contains('dark');
+  return {
+    primary:    `rgb(${p})`,
+    secondary:  `rgb(${sec})`,
+    pA: (a) => `rgb(${p} / ${a})`,
+    sA: (a) => `rgb(${sec} / ${a})`,
+    axis:       `rgb(${fg} / ${dk ? 0.72 : 0.65})`,
+    grid:       `rgb(${bdr} / ${dk ? 0.38 : 0.55})`,
+    tipBg:      `rgb(${dk ? '15 23 42' : '255 255 255'} / 0.97)`,
+    tipText:    `rgb(${fg})`,
+    tipBorder:  `rgb(${bdr})`,
+  };
+}
 
-  function chartTheme() {
-    const root = document.documentElement;
-    const css = getComputedStyle(root);
-    const p = css.getPropertyValue('--c-primary').trim() || '37 99 235';
-    const s = css.getPropertyValue('--c-secondary').trim() || '16 185 129';
-    const fg = css.getPropertyValue('--c-foreground').trim() || '15 23 42';
-    const border = css.getPropertyValue('--c-border').trim() || '226 232 240';
-    const dark = root.classList.contains('dark');
-    return {
-      primary: `rgb(${p})`,
-      secondary: `rgb(${s})`,
-      axis: `rgb(${fg} / ${dark ? 0.75 : 0.68})`,
-      grid: `rgb(${border} / ${dark ? 0.35 : 0.55})`,
-      tipBg: `rgb(${dark ? '15 23 42' : '255 255 255'} / 0.96)`,
-      tipText: `rgb(${fg})`,
-      tipBorder: `rgb(${border})`,
-    };
-  }
+function moneyFmt(n) {
+  return '₦' + Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
-  function gradient(ctx, rgb) {
-    const g = ctx.createLinearGradient(0, 0, 0, 260);
-    g.addColorStop(0, rgb.replace('rgb(', 'rgba(').replace(')', ', 0.45)'));
-    g.addColorStop(1, rgb.replace('rgb(', 'rgba(').replace(')', ', 0.08)'));
-    return g;
-  }
+function mkGrad(ctx, colorFn, h) {
+  const g = ctx.createLinearGradient(0, 0, 0, h || 280);
+  g.addColorStop(0,   colorFn(0.42));
+  g.addColorStop(0.6, colorFn(0.10));
+  g.addColorStop(1,   colorFn(0.00));
+  return g;
+}
 
-  function setSummary(series, prefix) {
-    const vals = (series.values || []).map(v => Number(v || 0));
-    const total = vals.reduce((a, b) => a + b, 0);
-    const peak = vals.length ? Math.max(...vals) : 0;
-    const avg = vals.length ? total / vals.length : 0;
-    document.getElementById(prefix + 'Total').textContent = money(total);
-    document.getElementById(prefix + 'Peak').textContent = money(peak);
-    document.getElementById(prefix + 'Avg').textContent = money(avg);
+function mkTip(t, kind) {
+  return {
+    backgroundColor: t.tipBg, titleColor: t.tipText, bodyColor: t.tipText,
+    borderColor: t.tipBorder, borderWidth: 1, padding: 12, cornerRadius: 10,
+    callbacks: {
+      label: (ctx) => {
+        if (kind === 'money') {
+          return ' ' + moneyFmt(ctx.parsed.y ?? ctx.parsed.x ?? 0);
+        }
+        if (kind === 'units') {
+          const v = ctx.parsed.y ?? ctx.parsed.x ?? ctx.raw ?? 0;
+          return ` ${Number(v).toLocaleString()} units`;
+        }
+        return ` ${ctx.label}: ${Number(ctx.parsed ?? ctx.raw ?? 0)} product(s)`;
+      },
+    },
+  };
+}
+
+/* ── KPI banner updater ─────────────────────────────────────────── */
+function fillKpi(prefix, series) {
+  const vals  = (series.values || []).map(v => Number(v || 0));
+  const total = vals.reduce((a, b) => a + b, 0);
+  const peak  = vals.length ? Math.max(...vals) : 0;
+  const avg   = vals.length ? total / vals.length : 0;
+  const peakI = vals.indexOf(peak);
+
+  const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  set(prefix + 'Total', moneyFmt(total));
+  set(prefix + 'Peak',  moneyFmt(peak));
+  set(prefix + 'Avg',   moneyFmt(avg));
+
+  /* empty-state overlay */
+  const empty = document.getElementById(prefix + 'Empty');
+  if (empty) {
     const hasData = vals.some(v => v > 0);
-    const empty = document.getElementById(prefix + 'Empty');
-    if (empty) empty.className = `${hasData ? 'hidden' : 'flex'} absolute inset-0 z-10 items-center justify-center text-center`;
+    empty.className = (hasData ? 'hidden' : 'flex') +
+      ' absolute inset-0 z-10 flex-col items-center justify-center text-center pointer-events-none';
   }
+}
 
-  function makeChart(id, series, prefix, colorKey) {
-    const canvas = document.getElementById(id);
-    if (!canvas || typeof Chart === 'undefined') return;
-    const ctx = canvas.getContext('2d');
-    const theme = chartTheme();
-    const color = colorKey === 'secondary' ? theme.secondary : theme.primary;
-    const fill = gradient(ctx, color);
-    setSummary(series, prefix);
+/* ── chart registry ─────────────────────────────────────────────── */
+let charts = [];
 
-    const chart = new Chart(ctx, {
-      type: 'line',
+function destroyAll() {
+  charts.forEach(c => { try { c.destroy(); } catch (_) {} });
+  charts = [];
+}
+
+/* ── line chart ─────────────────────────────────────────────────── */
+function makeLineChart(canvasId, series, colorKey) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+  const t     = rTheme();
+  const color = colorKey === 'secondary' ? t.secondary : t.primary;
+  const colorA = colorKey === 'secondary' ? t.sA.bind(t) : t.pA.bind(t);
+  const ctx   = canvas.getContext('2d');
+
+  fillKpi(canvas.dataset.kpiPrefix || '', series);
+
+  const c = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: series.labels || [],
+      datasets: [{
+        label: 'Revenue',
+        data:  (series.values || []).map(Number),
+        borderColor: color,
+        backgroundColor: mkGrad(ctx, colorA, 300),
+        fill: true, tension: 0.4, borderWidth: 2.5,
+        pointRadius: 4, pointHoverRadius: 7,
+        pointBackgroundColor: color, pointBorderColor: t.tipBg, pointBorderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
+      plugins: { legend: { display: false }, tooltip: mkTip(t, 'money') },
+      scales: {
+        x: { ticks: { color: t.axis, maxRotation: 45, font: { size: 11 } },
+             grid: { display: false }, border: { display: false } },
+        y: { beginAtZero: true, grid: { color: t.grid }, border: { display: false },
+             ticks: { color: t.axis, maxTicksLimit: 6,
+               callback: v => v>=1e6 ? `₦${(v/1e6).toFixed(1)}M` : v>=1e3 ? `₦${(v/1e3).toFixed(0)}k` : `₦${v}` }},
+      },
+    },
+  });
+  charts.push(c);
+  return c;
+}
+
+/* ── inventory charts ───────────────────────────────────────────── */
+function makeInvCharts() {
+  const t = rTheme();
+
+  /* stock health doughnut */
+  const hCanvas = document.getElementById('reportInvHealthChart');
+  if (hCanvas && inventory.stock_health) {
+    const hasData = inventory.stock_health.values.some(v => v > 0);
+    const emptyEl = document.getElementById('invHealthEmpty');
+    if (emptyEl) emptyEl.className = (hasData ? 'hidden' : 'flex') + ' absolute inset-0 items-center justify-center text-sm text-muted';
+
+    const c = new Chart(hCanvas.getContext('2d'), {
+      type: 'doughnut',
       data: {
-        labels: series.labels,
+        labels: inventory.stock_health.labels || [],
         datasets: [{
-          data: series.values,
-          borderColor: color,
-          backgroundColor: fill,
-          fill: true,
-          tension: 0.4,
-          borderWidth: 2.5,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: color,
-          pointBorderWidth: 2,
-          pointBorderColor: theme.tipBg
-        }]
+          data: inventory.stock_health.values || [],
+          backgroundColor: [t.sA(0.85), 'rgba(245,158,11,0.85)', 'rgba(239,68,68,0.85)'],
+          borderColor: t.tipBg, borderWidth: 2, hoverOffset: 8,
+        }],
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 450 },
+        responsive: true, maintainAspectRatio: false, cutout: '62%',
+        animation: { duration: 600 },
         plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: theme.tipBg,
-            titleColor: theme.tipText,
-            bodyColor: theme.tipText,
-            borderColor: theme.tipBorder,
-            borderWidth: 1,
-            callbacks: { label: (ctx) => ` ${money(ctx.parsed.y)}` }
-          }
+          legend: { display: true, position: 'bottom',
+            labels: { color: t.axis, boxWidth: 12, padding: 12, font: { size: 11 } }},
+          tooltip: mkTip(t, 'count'),
         },
-        scales: {
-          x: { ticks: { color: theme.axis, maxRotation: 45, font: { size: 11 } }, grid: { display: false }, border: { display: false } },
-          y: {
-            beginAtZero: true,
-            ticks: {
-              color: theme.axis,
-              maxTicksLimit: 6,
-              callback: (v) => v >= 1000000 ? `₦${(v/1000000).toFixed(1)}M` : (v >= 1000 ? `₦${(v/1000).toFixed(0)}k` : `₦${v}`)
-            },
-            grid: { color: theme.grid },
-            border: { display: false }
-          }
-        }
-      }
+      },
     });
-    reportCharts.push(chart);
+    charts.push(c);
   }
 
-  function renderReportsCharts() {
-    const debugMode = '{{ debug }}' === 'True';
-    const hasDaily = daily.values && daily.values.some(v => Number(v) > 0);
-    const hasWeekly = weekly.values && weekly.values.some(v => Number(v) > 0);
-
-    const demoDaily = {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      values: [52000, 88000, 76000, 94000, 132000, 118000, 101000],
-    };
-    const demoWeekly = {
-      labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
-      values: [420000, 510000, 480000, 560000, 610000, 590000, 640000, 670000],
-    };
-
-    reportCharts.forEach(c => c.destroy());
-    reportCharts = [];
-    makeChart('reportDailyChart', (!hasDaily && debugMode) ? demoDaily : daily, 'daily', 'primary');
-    makeChart('reportWeeklyChart', (!hasWeekly && debugMode) ? demoWeekly : weekly, 'weekly', 'secondary');
+  /* units by category vertical bar */
+  const catCanvas = document.getElementById('reportInvCategoryChart');
+  if (catCanvas && inventory.by_category) {
+    const rows = inventory.by_category.filter(r => r.units > 0).slice(0, 8);
+    const c = new Chart(catCanvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => r.name),
+        datasets: [{
+          label: 'Units', data: rows.map(r => r.units),
+          backgroundColor: rows.map((_, i) => t.pA(Math.max(0.4, 0.9 - i * 0.08))),
+          hoverBackgroundColor: t.primary,
+          borderRadius: 6, maxBarThickness: 36,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
+        plugins: { legend: { display: false }, tooltip: mkTip(t, 'units') },
+        scales: {
+          x: { ticks: { color: t.axis, maxRotation: 45, font: { size: 10 } },
+               grid: { display: false }, border: { display: false } },
+          y: { beginAtZero: true, grid: { color: t.grid }, border: { display: false },
+               ticks: { color: t.axis, font: { size: 10 }, precision: 0 }},
+        },
+      },
+    });
+    charts.push(c);
   }
 
-  renderReportsCharts();
-  new MutationObserver(() => renderReportsCharts())
-    .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  /* top products horizontal bar */
+  const topCanvas = document.getElementById('reportInvTopChart');
+  if (topCanvas && inventory.top_products) {
+    const rows = inventory.top_products.slice(0, 8);
+    const c = new Chart(topCanvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: rows.map(p => p.name.length > 18 ? p.name.slice(0, 16) + '…' : p.name),
+        datasets: [{
+          label: 'Units', data: rows.map(p => p.units),
+          backgroundColor: rows.map(p => p.units <= p.threshold ? 'rgba(239,68,68,0.75)' : t.sA(0.8)),
+          hoverBackgroundColor: t.secondary,
+          borderRadius: 6, maxBarThickness: 22,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y', animation: { duration: 500 },
+        plugins: { legend: { display: false }, tooltip: mkTip(t, 'units') },
+        scales: {
+          x: { beginAtZero: true, grid: { color: t.grid }, border: { display: false },
+               ticks: { color: t.axis, font: { size: 10 }, precision: 0 }},
+          y: { grid: { display: false }, border: { display: false },
+               ticks: { color: t.axis, font: { size: 10 } }},
+        },
+      },
+    });
+    charts.push(c);
+  }
+}
+
+/* ── render all ─────────────────────────────────────────────────── */
+function renderAll() {
+  if (typeof Chart === 'undefined') {
+    console.error('[Reports] Chart.js not loaded — check static/vendor/chart.umd.min.js');
+    return;
+  }
+  destroyAll();
+  makeLineChart('reportDailyChart',   daily,   'primary');
+  makeLineChart('reportWeeklyChart',  weekly,  'secondary');
+  makeLineChart('reportMonthlyChart', monthly, 'primary');
+  makeInvCharts();
+}
+
+/* Run once DOM is ready, then re-run on dark-mode toggle */
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', renderAll);
+} else {
+  renderAll();
+}
+new MutationObserver(renderAll).observe(document.documentElement, {
+  attributes: true, attributeFilter: ['class'],
+});
 </script>
 {% endblock %}

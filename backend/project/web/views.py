@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404
 import json
 from django.core.serializers.json import DjangoJSONEncoder
 
-from .analytics import get_dashboard_payload, earnings_series, get_sales_queryset as analytics_sales_qs
+from .analytics import get_dashboard_payload, get_reports_context, get_sales_queryset as analytics_sales_qs
 from .helpers import get_sales_queryset, get_sale_for_user, build_receipt_context
 
 def login_view(request):
@@ -45,6 +45,7 @@ def dashboard(request):
         'is_manager': request.user.is_superuser,
         'dashboard_data': payload,
         'channels_enabled': getattr(settings, 'CHANNELS_ENABLED', False),
+        'debug': settings.DEBUG,
     }
     return render(request, 'web/dashboard.html', context)
 
@@ -141,36 +142,24 @@ def reports(request):
         messages.error(request, 'Only managers can view reports.')
         return redirect('dashboard')
 
-    qs = analytics_sales_qs(request.user)
-    today = timezone.now().date()
-    week_start = today - timedelta(days=today.weekday())
-    month_start = today.replace(day=1)
-
-    summary = {
-        'today': qs.filter(created_at__date=today).aggregate(
-            revenue=Sum('grand_total'), count=Count('id')
-        ),
-        'week': qs.filter(created_at__date__gte=week_start).aggregate(
-            revenue=Sum('grand_total'), count=Count('id')
-        ),
-        'month': qs.filter(created_at__date__gte=month_start).aggregate(
-            revenue=Sum('grand_total'), count=Count('id')
-        ),
-        'all_time': qs.aggregate(revenue=Sum('grand_total'), count=Count('id')),
-    }
-
-    top_products = (
-        SaleItem.objects.filter(sale__in=qs)
-        .values('product__name')
-        .annotate(qty=Sum('quantity'), revenue=Sum('subtotal'))
-        .order_by('-revenue')[:10]
-    )
+    from django.conf import settings
+    ctx = get_reports_context(request.user)
 
     return render(request, 'web/reports.html', {
-        'summary': summary,
-        'top_products': top_products,
-        'earnings_daily_json': json.dumps(earnings_series(qs, 'daily'), cls=DjangoJSONEncoder),
-        'earnings_weekly_json': json.dumps(earnings_series(qs, 'weekly'), cls=DjangoJSONEncoder),
+        'summary': ctx['summary'],
+        'top_products': ctx['top_products'],
+        'workers': ctx['workers'],
+        'inventory': ctx['inventory'],
+        'low_stock_products': ctx['low_stock_products'],
+        'daily_breakdown': ctx['daily_breakdown'],
+        'weekly_breakdown': ctx['weekly_breakdown'],
+        'monthly_breakdown': ctx['monthly_breakdown'],
+        'generated_at': ctx['generated_at'],
+        'earnings_daily_json': json.dumps(ctx['earnings']['daily'], cls=DjangoJSONEncoder),
+        'earnings_weekly_json': json.dumps(ctx['earnings']['weekly'], cls=DjangoJSONEncoder),
+        'earnings_monthly_json': json.dumps(ctx['earnings']['monthly'], cls=DjangoJSONEncoder),
+        'inventory_json': json.dumps(ctx['inventory'], cls=DjangoJSONEncoder),
+        'debug': settings.DEBUG,
     })
 
 
@@ -308,3 +297,32 @@ def delete_product(request, product_id):
     product.delete()
     messages.success(request, f'Product "{name}" deleted successfully.')
     return redirect('inventory')
+
+import socket
+import json
+import qrcode
+from io import BytesIO
+from django.http import HttpResponse
+
+@login_required(login_url='login')
+def connection_qr(request):
+    """
+    Generate a QR code containing the local network IP of the server.
+    """
+    port = request.META.get('SERVER_PORT', '8000')
+    try:
+        # Get local IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        local_ip = "127.0.0.1"
+
+    backend_url = f"http://{local_ip}:{port}"
+    data = json.dumps({"app": "mydream_inventory", "url": backend_url})
+    
+    img = qrcode.make(data)
+    buf = BytesIO()
+    img.save(buf, format='PNG')
+    return HttpResponse(buf.getvalue(), content_type="image/png")

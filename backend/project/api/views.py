@@ -69,11 +69,34 @@ def category_list(request):
 @permission_classes([AllowAny])
 def sale_list(request):
     """
-    List all sales, or create a new sale.
+    List sales (role-aware) or create a new sale.
+    GET params: ?from=YYYY-MM-DD&to=YYYY-MM-DD
+    Staff users (non-superuser) only see their own sales.
     """
     if request.method == 'GET':
-        sales = Sale.objects.all().order_by('-created_at')
-        serializer = SaleSerializer(sales, many=True)
+        if request.user.is_authenticated and not request.user.is_superuser:
+            # Cashier/staff: only their own sales
+            sales = Sale.objects.filter(cashier=request.user).order_by('-created_at')
+        else:
+            # Superuser/unauthenticated: all sales
+            sales = Sale.objects.all().order_by('-created_at')
+
+        # Date range filters
+        date_from = request.GET.get('from')
+        date_to = request.GET.get('to')
+        from datetime import datetime as dt
+        if date_from:
+            try:
+                sales = sales.filter(created_at__date__gte=dt.strptime(date_from, '%Y-%m-%d').date())
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                sales = sales.filter(created_at__date__lte=dt.strptime(date_to, '%Y-%m-%d').date())
+            except ValueError:
+                pass
+
+        serializer = SaleSerializer(sales[:500], many=True)
         return Response(serializer.data)
 
     elif request.method == 'POST':
@@ -115,6 +138,8 @@ def sale_list(request):
                     product.stock_quantity -= int(item_data['quantity'])
                     product.save()
                     
+                from django.core.cache import cache
+                cache.clear()
                     
                 result_serializer = SaleSerializer(sale)
                 return Response(result_serializer.data, status=status.HTTP_201_CREATED)
@@ -132,12 +157,23 @@ def offline_sync(request):
     synced_sales = []
     errors = []
 
+    client_ids = [s.get('client_id') for s in sales_data if s.get('client_id')]
+    existing_sales = set(Sale.objects.filter(client_id__in=client_ids).values_list('client_id', flat=True))
+
+    # Pre-fetch all products needed for the sync
+    product_ids = set()
+    for s in sales_data:
+        for i in s.get('items', []):
+            product_ids.add(i.get('product_id'))
+    products_db = {p.id: p for p in Product.objects.filter(id__in=product_ids)}
+
+    sale_items_to_create = []
+    products_to_update = set()
+
     with transaction.atomic():
         for sale_data in sales_data:
-            # Check if this sale was already synced using client_id
             client_id = sale_data.get('client_id')
-            if client_id and Sale.objects.filter(client_id=client_id).exists():
-                # Skip already synced sales
+            if client_id in existing_sales:
                 continue
 
             items_data = sale_data.pop('items', [])
@@ -148,28 +184,36 @@ def offline_sync(request):
                 sale = serializer.save(cashier=cashier)
                 
                 for item_data in items_data:
-                    try:
-                        product = Product.objects.get(pk=item_data['product_id'])
-                        SaleItem.objects.create(
-                            sale=sale,
-                            product=product,
-                            quantity=item_data['quantity'],
-                            unit_price=item_data['unit_price'],
-                            subtotal=item_data['subtotal']
+                    p_id = item_data['product_id']
+                    if p_id in products_db:
+                        product = products_db[p_id]
+                        sale_items_to_create.append(
+                            SaleItem(
+                                sale=sale,
+                                product=product,
+                                quantity=item_data['quantity'],
+                                unit_price=item_data['unit_price'],
+                                subtotal=item_data['subtotal']
+                            )
                         )
-                        # Deduct stock
                         product.stock_quantity -= int(item_data['quantity'])
-                        product.save()
-                    except Product.DoesNotExist:
-                        errors.append(f"Product ID {item_data['product_id']} not found for sale {client_id}")
-                        # In a strict environment, we might raise an exception to rollback
-                        # but for POS sync, we might just log it and continue.
+                        products_to_update.add(product)
+                    else:
+                        errors.append(f"Product ID {p_id} not found for sale {client_id}")
                 
                 synced_sales.append(SaleSerializer(sale).data)
             else:
                 errors.append({"client_id": client_id, "errors": serializer.errors})
+                
+        if sale_items_to_create:
+            SaleItem.objects.bulk_create(sale_items_to_create)
+        if products_to_update:
+            Product.objects.bulk_update(products_to_update, ['stock_quantity'])
 
     if synced_sales:
+        from django.core.cache import cache
+        cache.clear()
+        
         from api.realtime import broadcast_dashboard_update
         broadcast_dashboard_update()
 

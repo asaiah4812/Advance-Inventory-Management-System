@@ -1,0 +1,70 @@
+<section class="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+  <header class="px-6 py-5 border-b border-border bg-gradient-to-r {{ gradient }} to-transparent">
+    <h3 class="font-bold text-foreground text-lg">{{ title }}</h3>
+    <p class="text-xs text-muted mt-1">{{ subtitle }}</p>
+  </header>
+
+  <div class="p-6">
+    {# KPI strip — IDs must match fillKpi(prefix, …) in reports.html #}
+    <div class="grid grid-cols-3 gap-px bg-border rounded-xl overflow-hidden mb-4 border border-border">
+      <div class="bg-surface px-4 py-3">
+        <p class="text-[11px] uppercase text-muted font-medium tracking-wide">Period total</p>
+        <p class="text-base font-bold text-foreground mt-0.5" id="{{ kpi_prefix }}Total">₦0.00</p>
+      </div>
+      <div class="bg-surface px-4 py-3">
+        <p class="text-[11px] uppercase text-muted font-medium tracking-wide">Best period</p>
+        <p class="text-base font-bold mt-0.5 {% if color == 'secondary' %}text-secondary{% else %}text-primary{% endif %}"
+           id="{{ kpi_prefix }}Peak">₦0.00</p>
+      </div>
+      <div class="bg-surface px-4 py-3">
+        <p class="text-[11px] uppercase text-muted font-medium tracking-wide">Average</p>
+        <p class="text-base font-bold text-secondary mt-0.5" id="{{ kpi_prefix }}Avg">₦0.00</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+      {# Chart area #}
+      <div class="xl:col-span-3 relative rounded-xl border border-border bg-background/50 p-4">
+        {# Empty-state overlay — shown/hidden by fillKpi() #}
+        <div id="{{ kpi_prefix }}Empty"
+             class="hidden absolute inset-0 z-10 flex-col items-center justify-center text-center pointer-events-none">
+          <p class="text-sm text-muted">No revenue data for this period yet.</p>
+        </div>
+        <div class="h-72">
+          <canvas id="{{ chart_id }}" data-kpi-prefix="{{ kpi_prefix }}" aria-label="{{ title }}"></canvas>
+        </div>
+      </div>
+
+      {# Breakdown table #}
+      <div class="xl:col-span-2 rounded-xl border border-border overflow-hidden">
+        <div class="px-4 py-3 bg-background border-b border-border">
+          <p class="text-xs font-semibold text-foreground uppercase tracking-wide">Period breakdown</p>
+        </div>
+        <div class="max-h-72 overflow-y-auto">
+          <table class="w-full text-sm text-left">
+            <thead class="sticky top-0 bg-surface z-[1]">
+              <tr class="text-xs text-muted uppercase">
+                <th class="px-4 py-2 font-medium">Period</th>
+                <th class="px-4 py-2 font-medium text-right">Revenue</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              {% for row in breakdown %}
+              <tr class="hover:bg-background/80">
+                <td class="px-4 py-2.5 text-foreground">{{ row.label }}</td>
+                <td class="px-4 py-2.5 text-right font-semibold text-primary">
+                  ₦{{ row.revenue|floatformat:2 }}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="2" class="px-4 py-6 text-center text-muted text-xs">No rows yet</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

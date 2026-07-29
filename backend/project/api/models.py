@@ -30,10 +30,10 @@ class Sale(models.Model):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     grand_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     
     # Used for offline sync
-    client_id = models.CharField(max_length=100, blank=True, null=True, help_text="Local ID from client")
+    client_id = models.CharField(max_length=100, blank=True, null=True, help_text="Local ID from client", db_index=True)
     synced_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

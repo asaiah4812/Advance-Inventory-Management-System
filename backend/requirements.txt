@@ -1,3 +1,4 @@
+# Vercel dependencies
 arrow==1.4.0
 asgiref==3.11.1
 attrs==26.1.0
@@ -50,3 +51,6 @@ psycopg2-binary
 dj-database-url
 cloudinary
 django-cloudinary-storage
+python-dotenv==1.2.2
+qrcode==8.2
+whitenoise==6.12.0

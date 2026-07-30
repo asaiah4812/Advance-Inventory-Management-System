@@ -91,3 +91,5 @@ Thumbs.db
 # Database dumps / Migration backups
 db_dump.json
 datadump_migration.json
+requirements-local.txt
+

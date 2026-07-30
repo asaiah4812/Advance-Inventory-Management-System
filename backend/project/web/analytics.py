@@ -41,27 +41,27 @@ def earnings_series(qs, period='daily'):
             values.append(totals_dict.get(day, 0.0))
             
     elif period == 'weekly':
-        start_date = (now - timedelta(weeks=7)).date()
-        # TruncWeek starts on Monday
-        weekly_totals = qs.filter(created_at__date__gte=start_date).annotate(
-            week=TruncWeek('created_at')
-        ).values('week').annotate(total=Sum('grand_total')).order_by('week')
+        # Fetch daily totals for the last 56 days in one single query
+        start_date = (now - timedelta(days=56)).date()
+        daily_totals = qs.filter(created_at__date__gte=start_date).annotate(
+            date=TruncDate('created_at')
+        ).values('date').annotate(total=Sum('grand_total')).order_by('date')
         
-        totals_dict = {item['week'].date() if item['week'] else None: _decimal(item['total']) for item in weekly_totals}
+        totals_dict = {item['date']: _decimal(item['total']) for item in daily_totals if item['date']}
         
         for i in range(7, -1, -1):
             week_end = (now - timedelta(weeks=i)).date()
             week_start = week_end - timedelta(days=6)
-            # Find matching week (Django TruncWeek is Monday, we can approximate or just use dict)
-            # For exact match, we fallback to range query if needed, but since it's just 7 weeks:
-            # Let's keep a simple loop for weekly if TruncWeek doesn't align perfectly with today-i*7, 
-            # or just use 7 simple queries since 7 is small, but let's optimize anyway.
-            total = qs.filter(
-                created_at__date__gte=week_start,
-                created_at__date__lte=week_end,
-            ).aggregate(s=Sum('grand_total'))['s']
+            
+            # Aggregate the 7-day range from the cached daily totals in memory
+            total = 0.0
+            current_day = week_start
+            while current_day <= week_end:
+                total += totals_dict.get(current_day, 0.0)
+                current_day += timedelta(days=1)
+                
             labels.append(f"{week_start.strftime('%b %d')}–{week_end.strftime('%d')}")
-            values.append(_decimal(total))
+            values.append(total)
             
     elif period == 'monthly':
         today = now.date()
@@ -142,7 +142,7 @@ def recent_activity(qs, limit=15):
     activities = []
     for sale in sales:
         cashier_name = sale.cashier.username if sale.cashier else 'Unknown'
-        item_count = sale.items.count()
+        item_count = len(sale.items.all())
         activities.append({
             'sale_id': str(sale.id),
             'cashier': cashier_name,
@@ -220,11 +220,17 @@ def get_reports_context(user):
     week_start = today - timedelta(days=today.weekday())
     month_start = today.replace(day=1)
 
-    def _period_stats(q):
-        return {
-            'revenue': _decimal(q.aggregate(s=Sum('grand_total'))['s']),
-            'count': q.count(),
-        }
+    from django.db.models import Q
+    summary = qs.aggregate(
+        all_time_rev=Sum('grand_total'),
+        all_time_cnt=Count('id'),
+        today_rev=Sum('grand_total', filter=Q(created_at__date=today)),
+        today_cnt=Count('id', filter=Q(created_at__date=today)),
+        week_rev=Sum('grand_total', filter=Q(created_at__date__gte=week_start)),
+        week_cnt=Count('id', filter=Q(created_at__date__gte=week_start)),
+        month_rev=Sum('grand_total', filter=Q(created_at__date__gte=month_start)),
+        month_cnt=Count('id', filter=Q(created_at__date__gte=month_start)),
+    )
 
     daily_series = earnings_series(qs, 'daily')
     weekly_series = earnings_series(qs, 'weekly')
@@ -270,10 +276,10 @@ def get_reports_context(user):
 
     return {
         'summary': {
-            'today': _period_stats(qs.filter(created_at__date=today)),
-            'week': _period_stats(qs.filter(created_at__date__gte=week_start)),
-            'month': _period_stats(qs.filter(created_at__date__gte=month_start)),
-            'all_time': _period_stats(qs),
+            'today': {'revenue': _decimal(summary['today_rev']), 'count': summary['today_cnt'] or 0},
+            'week': {'revenue': _decimal(summary['week_rev']), 'count': summary['week_cnt'] or 0},
+            'month': {'revenue': _decimal(summary['month_rev']), 'count': summary['month_cnt'] or 0},
+            'all_time': {'revenue': _decimal(summary['all_time_rev']), 'count': summary['all_time_cnt'] or 0},
         },
         'earnings': {
             'daily': daily_series,
@@ -314,24 +320,23 @@ def get_dashboard_payload(user):
     qs = get_sales_queryset(user)
     today = timezone.now().date()
 
-    totals = qs.aggregate(
+    from django.db.models import Q
+    summary_stats = qs.aggregate(
         revenue=Sum('grand_total'),
         count=Count('id'),
-    )
-    today_stats = qs.filter(created_at__date=today).aggregate(
-        revenue=Sum('grand_total'),
-        count=Count('id'),
+        today_revenue=Sum('grand_total', filter=Q(created_at__date=today)),
+        today_count=Count('id', filter=Q(created_at__date=today)),
     )
     low_stock = Product.objects.filter(stock_quantity__lte=DbF('low_stock_threshold')).count()
 
     payload = {
         'summary': {
-            'total_revenue': _decimal(totals['revenue']),
-            'total_revenue_display': f"{_decimal(totals['revenue']):,.2f}",
-            'sales_count': totals['count'] or 0,
-            'today_revenue': _decimal(today_stats['revenue']),
-            'today_revenue_display': f"{_decimal(today_stats['revenue']):,.2f}",
-            'today_sales_count': today_stats['count'] or 0,
+            'total_revenue': _decimal(summary_stats['revenue']),
+            'total_revenue_display': f"{_decimal(summary_stats['revenue']):,.2f}",
+            'sales_count': summary_stats['count'] or 0,
+            'today_revenue': _decimal(summary_stats['today_revenue']),
+            'today_revenue_display': f"{_decimal(summary_stats['today_revenue']):,.2f}",
+            'today_sales_count': summary_stats['today_count'] or 0,
             'low_stock': low_stock,
         },
         'earnings': {

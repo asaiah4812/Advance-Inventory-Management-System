@@ -173,7 +173,7 @@ def pos(request):
 
 @login_required(login_url='login')
 def inventory(request):
-    products = Product.objects.all().order_by('name')
+    products = Product.objects.select_related('category').all().order_by('name')
     return render(request, 'web/products.html', {'products': products})
 
 @login_required(login_url='login')

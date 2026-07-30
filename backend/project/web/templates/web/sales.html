@@ -72,7 +72,7 @@
             {% if is_manager %}
             <td class="px-6 py-4 text-sm">{{ sale.cashier.username|default:"—" }}</td>
             {% endif %}
-            <td class="px-6 py-4 text-sm text-muted">{{ sale.items.count }}</td>
+            <td class="px-6 py-4 text-sm text-muted">{{ sale.items.all|length }}</td>
             <td class="px-6 py-4 text-sm">₦{{ sale.discount|floatformat:2 }}</td>
             <td class="px-6 py-4 font-bold text-primary">₦{{ sale.grand_total|floatformat:2 }}</td>
             <td class="px-6 py-4 text-right space-x-2">

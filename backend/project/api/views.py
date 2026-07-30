@@ -18,9 +18,9 @@ def product_list(request):
     if request.method == 'GET':
         barcode = request.GET.get('barcode')
         if barcode:
-            products = Product.objects.filter(barcode=barcode)
+            products = Product.objects.filter(barcode=barcode).select_related('category')
         else:
-            products = Product.objects.all()
+            products = Product.objects.select_related('category').all()
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data)
 
@@ -76,10 +76,10 @@ def sale_list(request):
     if request.method == 'GET':
         if request.user.is_authenticated and not request.user.is_superuser:
             # Cashier/staff: only their own sales
-            sales = Sale.objects.filter(cashier=request.user).order_by('-created_at')
+            sales = Sale.objects.filter(cashier=request.user).select_related('cashier').prefetch_related('items__product').order_by('-created_at')
         else:
             # Superuser/unauthenticated: all sales
-            sales = Sale.objects.all().order_by('-created_at')
+            sales = Sale.objects.all().select_related('cashier').prefetch_related('items__product').order_by('-created_at')
 
         # Date range filters
         date_from = request.GET.get('from')

@@ -118,23 +118,35 @@ WSGI_APPLICATION = 'project.wsgi.application'
 
 import dj_database_url
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True
-    ) if os.getenv('DATABASE_URL') else {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('MYSQL_DATABASE', 'inventory_db'),
-        'USER': os.getenv('MYSQL_USER', 'root'),
-        'PASSWORD': os.getenv('MYSQL_PASSWORD', ''),
-        'HOST': os.getenv('MYSQL_HOST', '127.0.0.1'),
-        'PORT': os.getenv('MYSQL_PORT', '3306'),
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+# Choose database based on environment (e.g. development vs production)
+DJANGO_ENV = os.getenv('DJANGO_ENV', '').lower()
+if not DJANGO_ENV:
+    # Default to development if DEBUG is True, otherwise production
+    DJANGO_ENV = 'development' if DEBUG else 'production'
+
+if DJANGO_ENV == 'production' and os.getenv('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('MYSQL_DATABASE', 'inventory_db'),
+            'USER': os.getenv('MYSQL_USER', 'root'),
+            'PASSWORD': os.getenv('MYSQL_PASSWORD', ''),
+            'HOST': os.getenv('MYSQL_HOST', '127.0.0.1'),
+            'PORT': os.getenv('MYSQL_PORT', '3306'),
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            }
         }
     }
-}
+
 
 CACHES = {
     'default': {
@@ -218,10 +230,10 @@ CLOUDINARY_STORAGE = {
 if CLOUDINARY_STORAGE['CLOUD_NAME']:
     STORAGES = {
         "default": {
-            "BACKEND": "django_cloudinary_storage.storage.MediaCloudinaryStorage",
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
         },
         "staticfiles": {
-            "BACKEND": "django_cloudinary_storage.storage.StaticHashedCloudinaryStorage",
+            "BACKEND": "cloudinary_storage.storage.StaticHashedCloudinaryStorage",
         },
     }
 

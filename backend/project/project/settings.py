@@ -13,21 +13,41 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
+from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-from dotenv import load_dotenv
 load_dotenv(BASE_DIR / '.env')
 
+IS_VERCEL = os.environ.get('VERCEL') == '1'
+
+_cloudinary_url = os.environ.get('CLOUDINARY_URL', '').strip()
+_use_cloudinary = bool(_cloudinary_url) or all(
+    os.environ.get(key, '').strip()
+    for key in ('CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET')
+)
+
+if IS_VERCEL and not _use_cloudinary:
+    raise ImproperlyConfigured(
+        'CLOUDINARY_URL is required on Vercel for product images. '
+        'Sign up at https://cloudinary.com and add CLOUDINARY_URL to your environment variables.'
+    )
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-xbu&b3zx_5m1vbn%)r33wkabga2hn1s%znh)&*j41wuuz%h+ji')
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-xbu&b3zx_5m1vbn%)r33wkabga2hn1s%znh)&*j41wuuz%h+ji',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ['true', '1', 'yes']
+_debug_default = 'False' if IS_VERCEL else 'True'
+DEBUG = os.environ.get('DJANGO_DEBUG', _debug_default).lower() in ('true', '1', 'yes')
 
 # Mobile / LAN testing: any host when DEBUG=True, or set DJANGO_ALLOWED_HOSTS=192.168.1.5,localhost
 _allowed_hosts = os.environ.get('DJANGO_ALLOWED_HOSTS', '').strip()
@@ -36,7 +56,18 @@ if _allowed_hosts:
 elif DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.vercel.app']
+    ALLOWED_HOSTS = ['.vercel.app', 'localhost', '127.0.0.1']
+
+_csrf_origins = os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').strip()
+if _csrf_origins:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins.split(',') if o.strip()]
+elif not DEBUG:
+    CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app']
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 
 # Application definition
@@ -47,17 +78,22 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'cloudinary_storage',
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
-    "django_browser_reload",
     'corsheaders',
     "tailwind",
     "theme",
     'api',
     'web',
 ]
+
+if DEBUG:
+    INSTALLED_APPS.append("django_browser_reload")
+
+if _use_cloudinary:
+    _static_idx = INSTALLED_APPS.index('django.contrib.staticfiles')
+    INSTALLED_APPS[_static_idx:_static_idx] = ['cloudinary_storage', 'cloudinary']
 
 TAILWIND_APP_NAME = "theme"
 
@@ -84,7 +120,6 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    "django_browser_reload.middleware.BrowserReloadMiddleware",
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -92,6 +127,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+if DEBUG:
+    MIDDLEWARE.insert(3, "django_browser_reload.middleware.BrowserReloadMiddleware")
 
 ROOT_URLCONF = 'project.urls'
 
@@ -117,63 +155,25 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-import dj_database_url
-
-# Choose database based on environment (e.g. development vs production)
-DJANGO_ENV = os.getenv('DJANGO_ENV', '').lower()
-if not DJANGO_ENV:
-    # Default to development if DEBUG is True, otherwise production
-    DJANGO_ENV = 'development' if DEBUG else 'production'
-
-if DJANGO_ENV == 'production':
-    if os.getenv('DATABASE_URL'):
-        DATABASES = {
-            'default': dj_database_url.config(
-                default=os.getenv('DATABASE_URL'),
-                conn_max_age=600,
-                ssl_require=True
-            )
-        }
-    else:
-        # Safe fallback for production / Vercel build if DATABASE_URL is missing
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else BASE_DIR / 'db.sqlite3',
-            }
-        }
+_database_url = os.environ.get('DATABASE_URL', '').strip()
+if _database_url:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=_database_url,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+elif IS_VERCEL or not DEBUG:
+    raise ImproperlyConfigured(
+        'DATABASE_URL is required when deploying to Vercel or running with DEBUG=False. '
+        'Use a hosted PostgreSQL database (Neon, Supabase, or Vercel Postgres).'
+    )
 else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('MYSQL_DATABASE', 'inventory_db'),
-            'USER': os.getenv('MYSQL_USER', 'root'),
-            'PASSWORD': os.getenv('MYSQL_PASSWORD', ''),
-            'HOST': os.getenv('MYSQL_HOST', '127.0.0.1'),
-            'PORT': os.getenv('MYSQL_PORT', '3306'),
-            'OPTIONS': {
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            }
-        }
-    }
-
-
-if DJANGO_ENV == 'production':
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'unique-snowflake',
-        }
-    }
-else:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-            'LOCATION': BASE_DIR / 'django_cache',
-            'TIMEOUT': 300,
-            'OPTIONS': {
-                'MAX_ENTRIES': 1000
-            }
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
@@ -213,10 +213,33 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+
+STORAGES = {
+    'default': {
+        'BACKEND': (
+            'cloudinary_storage.storage.MediaCloudinaryStorage'
+            if _use_cloudinary
+            else 'django.core.files.storage.FileSystemStorage'
+        ),
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
+
+WHITENOISE_MANIFEST_STRICT = False
+
+if _use_cloudinary and not _cloudinary_url:
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': os.environ['CLOUDINARY_CLOUD_NAME'],
+        'API_KEY': os.environ['CLOUDINARY_API_KEY'],
+        'API_SECRET': os.environ['CLOUDINARY_API_SECRET'],
+    }
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -233,28 +256,13 @@ REST_FRAMEWORK = {
     ),
 }
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-# Cloudinary Storage settings
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
-    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
-}
-
-STORAGES = {
-    "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage" if CLOUDINARY_STORAGE['CLOUD_NAME'] else "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
-
 # Receipt / store info (shown on printed receipts)
 STORE_NAME = 'MyDream Inventory'
 STORE_ADDRESS = ''
 STORE_PHONE = ''
+
+# Mobile app API URLs (QR code on dashboard)
+# Local LAN uses http://<detected-ip>:MOBILE_API_PORT automatically.
+# Set PUBLIC_API_URL when hosted online, e.g. https://inventory.yourdomain.com
+PUBLIC_API_URL = os.environ.get('PUBLIC_API_URL', '').strip().rstrip('/')
+MOBILE_API_PORT = int(os.environ.get('MOBILE_API_PORT', '8000'))

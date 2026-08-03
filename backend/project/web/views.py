@@ -14,7 +14,17 @@ import json
 from django.core.serializers.json import DjangoJSONEncoder
 
 from .analytics import get_dashboard_payload, get_reports_context, get_sales_queryset as analytics_sales_qs
-from .helpers import get_sales_queryset, get_sale_for_user, build_receipt_context
+from .helpers import (
+    get_sales_queryset,
+    get_sale_for_user,
+    build_receipt_context,
+    get_mobile_connect_context,
+)
+
+def landing_page(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, 'web/landing.html')
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -46,6 +56,7 @@ def dashboard(request):
         'dashboard_data': payload,
         'channels_enabled': getattr(settings, 'CHANNELS_ENABLED', False),
         'debug': settings.DEBUG,
+        'mobile_connect': get_mobile_connect_context(request),
     }
     return render(request, 'web/dashboard.html', context)
 
@@ -173,7 +184,7 @@ def pos(request):
 
 @login_required(login_url='login')
 def inventory(request):
-    products = Product.objects.select_related('category').all().order_by('name')
+    products = Product.objects.all().order_by('name')
     return render(request, 'web/products.html', {'products': products})
 
 @login_required(login_url='login')
@@ -297,32 +308,3 @@ def delete_product(request, product_id):
     product.delete()
     messages.success(request, f'Product "{name}" deleted successfully.')
     return redirect('inventory')
-
-import socket
-import json
-import qrcode
-from io import BytesIO
-from django.http import HttpResponse
-
-@login_required(login_url='login')
-def connection_qr(request):
-    """
-    Generate a QR code containing the local network IP of the server.
-    """
-    port = request.META.get('SERVER_PORT', '8000')
-    try:
-        # Get local IP
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        local_ip = s.getsockname()[0]
-        s.close()
-    except Exception:
-        local_ip = "127.0.0.1"
-
-    backend_url = f"http://{local_ip}:{port}"
-    data = json.dumps({"app": "mydream_inventory", "url": backend_url})
-    
-    img = qrcode.make(data)
-    buf = BytesIO()
-    img.save(buf, format='PNG')
-    return HttpResponse(buf.getvalue(), content_type="image/png")

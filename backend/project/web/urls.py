@@ -3,7 +3,8 @@ from django.urls import path
 from . import import_export_views, views
 
 urlpatterns = [
-    path('', views.dashboard, name='dashboard'),
+    path('', views.landing_page, name='landing_page'),
+    path('dashboard/', views.dashboard, name='dashboard'),
     path('dashboard/stats/', views.dashboard_stats, name='dashboard_stats'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
@@ -28,5 +29,4 @@ urlpatterns = [
     path('data/sales/export/', import_export_views.export_sales, name='export_sales'),
     path('data/sales/template/', import_export_views.export_sales_template, name='export_sales_template'),
     path('data/sales/import/', import_export_views.import_sales, name='import_sales'),
-    path('connection-qr/', views.connection_qr, name='connection_qr'),
 ]

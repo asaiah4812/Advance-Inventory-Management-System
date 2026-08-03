@@ -1,0 +1,975 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DreamInventory - Smart SaaS Inventory Management System</title>
+    
+    <!-- Modern Typography: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae2fd',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        },
+                        dark: {
+                            900: '#030712',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Animate On Scroll (AOS) -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+    
+    <!-- Custom styles for gradient blurs, custom scrollbar & premium animations -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        
+        .font-display {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Glassmorphism Navigation */
+        .glass-nav {
+            background: rgba(2, 6, 23, 0.7);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Glassmorphic Cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px -15px rgba(2, 132, 199, 0.2);
+        }
+
+        /* Glowing Background Accents */
+        .glow-accent {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(2, 132, 199, 0.15) 0%, rgba(2, 132, 199, 0) 70%);
+            filter: blur(50px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #020617;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+    </style>
+</head>
+<body class="selection:bg-brand-500 selection:text-white">
+
+    <!-- Glowing Background blobs -->
+    <div class="glow-accent top-[-100px] left-[-100px]"></div>
+    <div class="glow-accent top-[800px] right-[-200px]"></div>
+    <div class="glow-accent top-[2200px] left-[-300px]"></div>
+    <div class="glow-accent top-[3600px] right-[-100px]"></div>
+
+    <!-- Navigation Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 glass-nav">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="#" class="flex items-center space-x-3 group">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-sky-400 flex items-center justify-center shadow-lg shadow-brand-500/20 transform group-hover:rotate-6 transition-transform">
+                    <i data-lucide="box" class="w-6 h-6 text-white"></i>
+                </div>
+                <span class="text-xl font-bold font-display tracking-tight text-white group-hover:text-brand-100 transition-colors">
+                    Dream<span class="bg-gradient-to-r from-brand-500 to-sky-400 bg-clip-text text-transparent">Inventory</span>
+                </span>
+            </a>
+
+            <!-- Desktop Links -->
+            <nav class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-300">
+                <a href="#features" class="hover:text-white transition-colors">Features</a>
+                <a href="#demo" class="hover:text-white transition-colors">Interactive Demo</a>
+                <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+                <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
+            </nav>
+
+            <!-- Actions -->
+            <div class="hidden md:flex items-center space-x-4">
+                <a href="{% url 'login' %}" class="px-5 py-2.5 text-sm font-semibold hover:text-white transition-colors">Sign In</a>
+                <a href="{% url 'login' %}" class="px-6 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-brand-600 to-sky-500 hover:from-brand-700 hover:to-sky-600 text-white shadow-lg shadow-brand-500/20 hover:shadow-brand-500/35 transform hover:-translate-y-0.5 transition-all">
+                    Get Started Free
+                </a>
+            </div>
+
+            <!-- Mobile menu button -->
+            <button id="mobile-menu-btn" class="md:hidden p-2 text-slate-400 hover:text-white focus:outline-none">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden md:hidden absolute top-20 left-0 right-0 p-6 bg-dark-950/95 border-b border-white/5 backdrop-blur-lg flex flex-col space-y-4">
+            <a href="#features" class="text-slate-300 hover:text-white font-medium">Features</a>
+            <a href="#demo" class="text-slate-300 hover:text-white font-medium">Interactive Demo</a>
+            <a href="#pricing" class="text-slate-300 hover:text-white font-medium">Pricing</a>
+            <a href="#faq" class="text-slate-300 hover:text-white font-medium">FAQ</a>
+            <hr class="border-white/5 my-2">
+            <a href="{% url 'login' %}" class="w-full text-center py-2.5 text-slate-300 hover:text-white font-medium">Sign In</a>
+            <a href="{% url 'login' %}" class="w-full text-center py-3 rounded-xl bg-gradient-to-r from-brand-600 to-sky-500 text-white font-semibold shadow-lg shadow-brand-500/10">
+                Get Started Free
+            </a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative pt-36 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6 relative z-10">
+            <div class="text-center max-w-4xl mx-auto">
+                <span class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-200 text-xs font-semibold uppercase tracking-wider mb-8 animate-pulse">
+                    <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                    <span>Next-Gen Inventory Control</span>
+                </span>
+                
+                <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold font-display leading-[1.1] tracking-tight mb-8">
+                    The Smartest Way to Manage Your <span class="bg-gradient-to-r from-brand-400 via-sky-400 to-sky-300 bg-clip-text text-transparent">Inventory & Sales</span>
+                </h1>
+                
+                <p class="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed mb-10">
+                    Streamline operations, optimize stock levels, and accelerate your sales with DreamInventory — the modern, premium management platform designed for growing businesses.
+                </p>
+
+                <div class="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-5 mb-16">
+                    <a href="{% url 'login' %}" class="w-full sm:w-auto px-8 py-4 font-semibold rounded-xl bg-gradient-to-r from-brand-600 to-sky-500 hover:from-brand-700 hover:to-sky-600 text-white shadow-xl shadow-brand-500/20 hover:shadow-brand-500/35 transform hover:-translate-y-0.5 transition-all text-center flex items-center justify-center space-x-2">
+                        <span>Get Started Free</span>
+                        <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </a>
+                    <a href="#demo" class="w-full sm:w-auto px-8 py-4 font-semibold rounded-xl border border-white/10 hover:border-brand-500/50 bg-white/5 hover:bg-white/10 text-white transition-all text-center flex items-center justify-center space-x-2">
+                        <i data-lucide="play-circle" class="w-5 h-5 text-brand-400"></i>
+                        <span>Explore Live Demo</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Mock Dashboard Preview Card -->
+            <div class="mt-8 max-w-5xl mx-auto" data-aos="fade-up" data-aos-duration="1000">
+                <div class="relative rounded-2xl overflow-hidden border border-white/10 bg-slate-900/60 p-3 md:p-4 shadow-2xl shadow-brand-500/10 backdrop-blur-md">
+                    <!-- Top Window bar -->
+                    <div class="flex items-center justify-between pb-3 border-b border-white/5 px-2 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-3.5 h-3.5 rounded-full bg-red-500/80 inline-block"></span>
+                            <span class="w-3.5 h-3.5 rounded-full bg-yellow-500/80 inline-block"></span>
+                            <span class="w-3.5 h-3.5 rounded-full bg-green-500/80 inline-block"></span>
+                        </div>
+                        <div class="px-8 py-1 rounded-lg bg-slate-950/80 border border-white/5 text-xs text-slate-500 flex items-center space-x-2">
+                            <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                            <span>dreaminventory.app/dashboard</span>
+                        </div>
+                        <div class="w-12"></div>
+                    </div>
+
+                    <!-- Inner Mock Dashboard UI Grid -->
+                    <div class="grid grid-cols-12 gap-4 rounded-xl bg-slate-950/40 p-4 border border-white/5">
+                        
+                        <!-- Mock Sidebar -->
+                        <div class="col-span-12 md:col-span-3 border-r border-white/5 pr-4 hidden md:block">
+                            <div class="flex items-center space-x-2.5 mb-6 px-2">
+                                <div class="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center">
+                                    <i data-lucide="box" class="w-4 h-4 text-white"></i>
+                                </div>
+                                <span class="text-sm font-bold tracking-tight text-white">DreamInventory</span>
+                            </div>
+                            <div class="space-y-1">
+                                <span class="bg-brand-500/10 text-brand-400 flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-semibold">
+                                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                                    <span>Dashboard</span>
+                                </span>
+                                <span class="text-slate-500 flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium hover:bg-white/5 transition-colors cursor-pointer">
+                                    <i data-lucide="package" class="w-4 h-4"></i>
+                                    <span>Products</span>
+                                </span>
+                                <span class="text-slate-500 flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium hover:bg-white/5 transition-colors cursor-pointer">
+                                    <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                                    <span>Sales / POS</span>
+                                </span>
+                                <span class="text-slate-500 flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium hover:bg-white/5 transition-colors cursor-pointer">
+                                    <i data-lucide="users" class="w-4 h-4"></i>
+                                    <span>Staff members</span>
+                                </span>
+                                <span class="text-slate-500 flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium hover:bg-white/5 transition-colors cursor-pointer">
+                                    <i data-lucide="file-bar-chart" class="w-4 h-4"></i>
+                                    <span>Reports</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Mock Main Section -->
+                        <div class="col-span-12 md:col-span-9 space-y-4">
+                            <!-- Dashboard Header -->
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-sm font-semibold text-white">Dashboard Overview</h3>
+                                    <p class="text-[11px] text-slate-500">Real-time store metrics and insights</p>
+                                </div>
+                                <span class="px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold tracking-wider flex items-center space-x-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                                    <span>LIVE</span>
+                                </span>
+                            </div>
+
+                            <!-- Dashboard Cards Grid -->
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                                    <span class="text-[10px] text-slate-500 font-medium uppercase tracking-wider block">Today Sales</span>
+                                    <span class="text-sm md:text-base font-bold text-white block mt-1">$4,821.50</span>
+                                    <span class="text-[9px] text-emerald-400 mt-1 flex items-center space-x-0.5">
+                                        <i data-lucide="trending-up" class="w-3 h-3"></i>
+                                        <span>+18.4%</span>
+                                    </span>
+                                </div>
+                                <div class="bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                                    <span class="text-[10px] text-slate-500 font-medium uppercase tracking-wider block">Active Products</span>
+                                    <span class="text-sm md:text-base font-bold text-white block mt-1">428 Items</span>
+                                    <span class="text-[9px] text-brand-400 mt-1 flex items-center space-x-0.5">
+                                        <i data-lucide="plus-circle" class="w-3 h-3"></i>
+                                        <span>+5 this week</span>
+                                    </span>
+                                </div>
+                                <div class="bg-white/[0.02] border border-white/5 rounded-xl p-3 border-amber-500/20">
+                                    <span class="text-[10px] text-slate-500 font-medium uppercase tracking-wider block">Low Stock Alerts</span>
+                                    <span class="text-sm md:text-base font-bold text-amber-400 block mt-1">3 Items</span>
+                                    <span class="text-[9px] text-amber-500 mt-1 flex items-center space-x-0.5">
+                                        <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+                                        <span>Immediate restocking</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Beautiful Chart Preview -->
+                            <div class="bg-white/[0.02] border border-white/5 rounded-xl p-3.5">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-[11px] font-semibold text-slate-300">Sales Velocity Chart</span>
+                                    <span class="text-[9px] text-slate-500">Last 7 Days</span>
+                                </div>
+                                <div class="h-28 flex items-end justify-between px-2 pt-2 relative">
+                                    <!-- Sales Graph Bars -->
+                                    <div class="w-10 bg-slate-800 rounded-t h-[40%]"></div>
+                                    <div class="w-10 bg-slate-800 rounded-t h-[55%]"></div>
+                                    <div class="w-10 bg-slate-800 rounded-t h-[35%]"></div>
+                                    <div class="w-10 bg-brand-500/80 rounded-t h-[75%]"></div>
+                                    <div class="w-10 bg-slate-800 rounded-t h-[60%]"></div>
+                                    <div class="w-10 bg-brand-500/80 rounded-t h-[85%]"></div>
+                                    <div class="w-10 bg-gradient-to-t from-brand-600 to-sky-400 rounded-t h-[95%]"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="py-12 border-y border-white/5 bg-slate-950/60 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+                <div class="space-y-2">
+                    <span class="text-3xl md:text-4xl font-extrabold font-display text-white">99.9%</span>
+                    <p class="text-sm text-slate-400 font-medium">Uptime Guarantee</p>
+                </div>
+                <div class="space-y-2">
+                    <span class="text-3xl md:text-4xl font-extrabold font-display text-brand-400">10M+</span>
+                    <p class="text-sm text-slate-400 font-medium">Items Logged</p>
+                </div>
+                <div class="space-y-2">
+                    <span class="text-3xl md:text-4xl font-extrabold font-display text-white">50%+</span>
+                    <p class="text-sm text-slate-400 font-medium">Time Saved on Auditing</p>
+                </div>
+                <div class="space-y-2">
+                    <span class="text-3xl md:text-4xl font-extrabold font-display text-brand-400">5k+</span>
+                    <p class="text-sm text-slate-400 font-medium">Businesses Trust Us</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Features Section -->
+    <section id="features" class="py-24 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center max-w-2xl mx-auto mb-20">
+                <h2 class="text-3xl md:text-5xl font-extrabold font-display tracking-tight text-white mb-6">
+                    Designed to Solve Your <span class="bg-gradient-to-r from-brand-400 to-sky-300 bg-clip-text text-transparent">Stock Management Pains</span>
+                </h2>
+                <p class="text-slate-400 leading-relaxed">
+                    Say goodbye to manual auditing and Excel spreadsheet errors. DreamInventory automates your stock workflow.
+                </p>
+            </div>
+
+            <!-- Features Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1: Real-time POS -->
+                <div class="glass-card rounded-2xl p-8 space-y-6" data-aos="fade-up" data-aos-delay="100">
+                    <div class="w-12 h-12 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
+                        <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-bold font-display text-white">Real-Time POS Sales</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Execute transactions instantly. Deduct items automatically from your warehouse and broadcast stats directly to your cashiers.
+                    </p>
+                </div>
+
+                <!-- Feature 2: Smart Alerts -->
+                <div class="glass-card rounded-2xl p-8 space-y-6" data-aos="fade-up" data-aos-delay="200">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                        <i data-lucide="bell" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-bold font-display text-white">Low Stock Smart Alerts</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Never run out of products. Define threshold triggers and get instant notification to restock items before your customers notice.
+                    </p>
+                </div>
+
+                <!-- Feature 3: Live Analytics -->
+                <div class="glass-card rounded-2xl p-8 space-y-6" data-aos="fade-up" data-aos-delay="300">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-bold font-display text-white">Real-time Insights</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Understand your store statistics, track average order totals, margins, and sales velocity instantly from a unified clean dashboard.
+                    </p>
+                </div>
+
+                <!-- Feature 4: Staff Management -->
+                <div class="glass-card rounded-2xl p-8 space-y-6" data-aos="fade-up" data-aos-delay="100">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                        <i data-lucide="shield-check" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-bold font-display text-white">Staff Audit Controls</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Assign roles, review checkouts, restrict specific permissions, and see cashier performance updates dynamically.
+                    </p>
+                </div>
+
+                <!-- Feature 5: Bulk Excel Data -->
+                <div class="glass-card rounded-2xl p-8 space-y-6" data-aos="fade-up" data-aos-delay="200">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                        <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-bold font-display text-white">Data Exchange</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Easily import products or export sales history to Excel spreadsheets. Work offline or back up database details with a single click.
+                    </p>
+                </div>
+
+                <!-- Feature 6: Cloudinary Assets -->
+                <div class="glass-card rounded-2xl p-8 space-y-6" data-aos="fade-up" data-aos-delay="300">
+                    <div class="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                        <i data-lucide="image" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-bold font-display text-white">Cloud Image Engine</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Upload high-resolution product photos seamlessly using the built-in Cloudinary storage integration for static files.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Showcase Section (Interactive Demo) -->
+    <section id="demo" class="py-24 bg-slate-950/40 border-y border-white/5 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 class="text-3xl md:text-5xl font-extrabold font-display tracking-tight text-white mb-6">
+                    See How It <span class="bg-gradient-to-r from-brand-400 to-sky-300 bg-clip-text text-transparent">Works Live</span>
+                </h2>
+                <p class="text-slate-400">
+                    Click the navigation tabs below to explore the core screens of the platform dynamically.
+                </p>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div class="flex flex-wrap items-center justify-center gap-2 mb-10 max-w-xl mx-auto p-1.5 rounded-2xl bg-white/[0.02] border border-white/5">
+                <button onclick="switchShowcase('sales')" id="btn-sales" class="showcase-btn active px-4 py-2 text-xs font-semibold rounded-xl transition-all bg-brand-600 text-white shadow-lg">
+                    Real-time POS
+                </button>
+                <button onclick="switchShowcase('alerts')" id="btn-alerts" class="showcase-btn px-4 py-2 text-xs font-semibold rounded-xl transition-all hover:text-white text-slate-400">
+                    Low Stock Alerts
+                </button>
+                <button onclick="switchShowcase('reports')" id="btn-reports" class="showcase-btn px-4 py-2 text-xs font-semibold rounded-xl transition-all hover:text-white text-slate-400">
+                    SaaS Analytics
+                </button>
+            </div>
+
+            <!-- Showcase Visual Viewport -->
+            <div class="max-w-4xl mx-auto rounded-2xl overflow-hidden border border-white/10 bg-slate-900/60 p-4 shadow-2xl relative">
+                
+                <!-- Screen 1: Sales/POS -->
+                <div id="showcase-sales" class="showcase-screen space-y-4">
+                    <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="shopping-cart" class="w-5 h-5 text-brand-400"></i>
+                            <span class="text-xs font-bold text-white tracking-wide uppercase">Active Cashier Checkout Session</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-medium">Session ID: 482-ADX</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-12 md:col-span-8 space-y-3">
+                            <div class="bg-slate-950/80 rounded-xl p-3 border border-white/5 flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-xs">🥛</div>
+                                    <div>
+                                        <span class="text-xs font-semibold text-white block">Organic Whole Milk</span>
+                                        <span class="text-[10px] text-slate-500">Barcode: 8421034981</span>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-bold text-slate-300">2 x $4.50</span>
+                            </div>
+                            <div class="bg-slate-950/80 rounded-xl p-3 border border-white/5 flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-xs">🍞</div>
+                                    <div>
+                                        <span class="text-xs font-semibold text-white block">Sourdough Wheat Bread</span>
+                                        <span class="text-[10px] text-slate-500">Barcode: 7394821039</span>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-bold text-slate-300">1 x $6.20</span>
+                            </div>
+                        </div>
+                        <div class="col-span-12 md:col-span-4 bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 flex flex-col justify-between">
+                            <div>
+                                <span class="text-[10px] text-brand-300 uppercase font-bold tracking-wider block">Checkout Summary</span>
+                                <span class="text-2xl font-extrabold text-white mt-1 block">$15.20</span>
+                            </div>
+                            <button class="w-full mt-4 py-2 text-xs font-bold rounded-lg bg-gradient-to-r from-brand-600 to-sky-500 text-white shadow-md">
+                                Process Sale
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Screen 2: Low Stock Alerts -->
+                <div id="showcase-alerts" class="showcase-screen hidden space-y-4">
+                    <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="bell" class="w-5 h-5 text-amber-400"></i>
+                            <span class="text-xs font-bold text-white tracking-wide uppercase">Critical Restocking Logs</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-bold">3 items critical</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xl">🥤</span>
+                                <div>
+                                    <span class="text-xs font-bold text-white block">Energy Beverage XL</span>
+                                    <span class="text-[10px] text-slate-500">Current Stock: 2 | Threshold: 10</span>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 text-[10px] font-bold rounded bg-amber-500/20 text-amber-300">Stock Critical</span>
+                        </div>
+                        <div class="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xl">🥚</span>
+                                <div>
+                                    <span class="text-xs font-bold text-white block">Farm Fresh Brown Eggs (Dozen)</span>
+                                    <span class="text-[10px] text-slate-500">Current Stock: 1 | Threshold: 5</span>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 text-[10px] font-bold rounded bg-amber-500/20 text-amber-300">Stock Critical</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Screen 3: SaaS Analytics -->
+                <div id="showcase-reports" class="showcase-screen hidden space-y-4">
+                    <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5 text-emerald-400"></i>
+                            <span class="text-xs font-bold text-white tracking-wide uppercase">Real-Time Performance Dashboard</span>
+                        </div>
+                        <span class="text-xs text-emerald-400 font-semibold">+24.8% Monthly Growth</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="bg-slate-950/80 rounded-xl p-3 border border-white/5">
+                            <span class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Gross Sales</span>
+                            <span class="text-sm font-extrabold text-white mt-0.5 block">$124,800.50</span>
+                        </div>
+                        <div class="bg-slate-950/80 rounded-xl p-3 border border-white/5">
+                            <span class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Average Cart</span>
+                            <span class="text-sm font-extrabold text-white mt-0.5 block">$42.15</span>
+                        </div>
+                        <div class="bg-slate-950/80 rounded-xl p-3 border border-white/5">
+                            <span class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Staff Count</span>
+                            <span class="text-sm font-extrabold text-white mt-0.5 block">14 Members</span>
+                        </div>
+                        <div class="bg-slate-950/80 rounded-xl p-3 border border-white/5">
+                            <span class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Orders Audited</span>
+                            <span class="text-sm font-extrabold text-white mt-0.5 block">2,491 Checkout</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Plans Section -->
+    <section id="pricing" class="py-24 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 class="text-3xl md:text-5xl font-extrabold font-display tracking-tight text-white mb-6">
+                    Simple, Transparent <span class="bg-gradient-to-r from-brand-400 to-sky-300 bg-clip-text text-transparent">Pricing</span>
+                </h2>
+                <p class="text-slate-400 leading-relaxed mb-8">
+                    Choose the perfect tier to match your company size. Switch plans or cancel anytime.
+                </p>
+
+                <!-- Billing Cycle Switcher -->
+                <div class="inline-flex items-center space-x-3 p-1 rounded-full bg-white/[0.02] border border-white/5">
+                    <button onclick="switchBilling('monthly')" id="bill-monthly" class="px-4 py-1.5 text-xs font-semibold rounded-full bg-brand-600 text-white shadow">
+                        Monthly
+                    </button>
+                    <button onclick="switchBilling('annual')" id="bill-annual" class="px-4 py-1.5 text-xs font-semibold rounded-full hover:text-white text-slate-400">
+                        Annually <span class="text-[10px] text-emerald-400 ml-1 font-bold">-20%</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pricing Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
+                <!-- Startup Plan -->
+                <div class="glass-card rounded-2xl p-8 flex flex-col justify-between" data-aos="fade-up" data-aos-delay="100">
+                    <div class="space-y-6">
+                        <div>
+                            <span class="text-xs font-bold text-brand-400 uppercase tracking-widest block mb-2">Startup Plan</span>
+                            <span class="text-4xl font-extrabold font-display text-white mt-1 inline-block">$<span class="price-val" data-monthly="19" data-annual="15">19</span></span>
+                            <span class="text-xs text-slate-500 font-medium">/ month</span>
+                        </div>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Ideal for single stores, local boutique shops, or early stage inventory testing.
+                        </p>
+                        <hr class="border-white/5">
+                        <ul class="space-y-3.5 text-xs text-slate-300 font-medium">
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Up to 100 Products</span>
+                            </li>
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Up to 2 Staff Accounts</span>
+                            </li>
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Excel Data Import/Export</span>
+                            </li>
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Standard Stock alerts</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="{% url 'login' %}" class="w-full mt-8 py-3 text-xs font-bold text-center rounded-xl border border-white/10 hover:border-brand-500/50 bg-white/5 hover:bg-white/10 text-white transition-all">
+                        Start Free Trial
+                    </a>
+                </div>
+
+                <!-- Professional Plan (Most Popular) -->
+                <div class="glass-card rounded-2xl p-8 border-brand-500/40 bg-brand-500/[0.02] flex flex-col justify-between relative" data-aos="fade-up" data-aos-delay="200">
+                    <span class="absolute top-4 right-4 px-2.5 py-0.5 rounded-full bg-brand-500/20 text-brand-300 text-[10px] font-bold tracking-wider uppercase border border-brand-500/30">
+                        Most Popular
+                    </span>
+                    <div class="space-y-6">
+                        <div>
+                            <span class="text-xs font-bold text-brand-400 uppercase tracking-widest block mb-2">Growth / Pro</span>
+                            <span class="text-4xl font-extrabold font-display text-white mt-1 inline-block">$<span class="price-val" data-monthly="49" data-annual="39">49</span></span>
+                            <span class="text-xs text-slate-500 font-medium">/ month</span>
+                        </div>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Designed for scaling retail stores, restaurants, or distributors who need live analytics.
+                        </p>
+                        <hr class="border-white/5">
+                        <ul class="space-y-3.5 text-xs text-slate-300 font-medium">
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Unlimited Products</span>
+                            </li>
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Up to 10 Staff Accounts</span>
+                            </li>
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Smart Low-Stock Alerts</span>
+                            </li>
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Interactive sales charts</span>
+                            </li>
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Priority Cloudinary Media storage</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="{% url 'login' %}" class="w-full mt-8 py-3 text-xs font-bold text-center rounded-xl bg-gradient-to-r from-brand-600 to-sky-500 hover:from-brand-700 hover:to-sky-600 text-white shadow-lg shadow-brand-500/25">
+                        Get Started Pro
+                    </a>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="glass-card rounded-2xl p-8 flex flex-col justify-between" data-aos="fade-up" data-aos-delay="300">
+                    <div class="space-y-6">
+                        <div>
+                            <span class="text-xs font-bold text-brand-400 uppercase tracking-widest block mb-2">Enterprise Plan</span>
+                            <span class="text-4xl font-extrabold font-display text-white mt-1 inline-block">$<span class="price-val" data-monthly="129" data-annual="99">129</span></span>
+                            <span class="text-xs text-slate-500 font-medium">/ month</span>
+                        </div>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            For multi-warehouse companies and franchises requiring advanced access.
+                        </p>
+                        <hr class="border-white/5">
+                        <ul class="space-y-3.5 text-xs text-slate-300 font-medium">
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Unlimited everything</span>
+                            </li>
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Custom integrations / APIs</span>
+                            </li>
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>Dedicated Database servers</span>
+                            </li>
+                            <li class="flex items-center space-x-2.5">
+                                <i data-lucide="check" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+                                <span>24/7 Phone support team</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="mailto:sales@dreaminventory.app" class="w-full mt-8 py-3 text-xs font-bold text-center rounded-xl border border-white/10 hover:border-brand-500/50 bg-white/5 hover:bg-white/10 text-white transition-all">
+                        Contact Sales
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="py-24 bg-slate-950/20 border-t border-white/5 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 class="text-3xl md:text-5xl font-extrabold font-display tracking-tight text-white mb-6">
+                    What Our Customers <span class="bg-gradient-to-r from-brand-400 to-sky-300 bg-clip-text text-transparent">Are Saying</span>
+                </h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="glass-card rounded-2xl p-8 space-y-6">
+                    <p class="text-slate-300 text-sm leading-relaxed italic">
+                        "The transition from Excel sheets to DreamInventory was a game changer. We configured the low stock threshold alert at 10 items, and now we never run out of our best-selling drinks. The POS interface is incredibly fast."
+                    </p>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-500 to-sky-400 flex items-center justify-center font-bold text-white text-xs">AM</div>
+                        <div>
+                            <span class="text-xs font-bold text-white block">Alex Miller</span>
+                            <span class="text-[10px] text-slate-500">Owner, Beverage Express</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-8 space-y-6">
+                    <p class="text-slate-300 text-sm leading-relaxed italic">
+                        "Using Neon and Cloudinary under the hood makes this system lightning fast. Pushing and importing product spreadsheets takes less than 2 seconds. The staff management interface made audit logging seamless."
+                    </p>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-500 to-sky-400 flex items-center justify-center font-bold text-white text-xs">SK</div>
+                        <div>
+                            <span class="text-xs font-bold text-white block">Sarah K.</span>
+                            <span class="text-[10px] text-slate-500">Retail Manager, Threads Boutique</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-8 space-y-6">
+                    <p class="text-slate-300 text-sm leading-relaxed italic">
+                        "Excellent mobile compatibility! Our cashier uses the web app on an iPad behind the counter. Stock balances sync instantly. Very happy with the premium support team."
+                    </p>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-500 to-sky-400 flex items-center justify-center font-bold text-white text-xs">DH</div>
+                        <div>
+                            <span class="text-xs font-bold text-white block">David Harris</span>
+                            <span class="text-[10px] text-slate-500">Founder, FreshEats Groceries</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="py-24 border-t border-white/5 relative z-10">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-5xl font-extrabold font-display tracking-tight text-white mb-6">
+                    Frequently Asked <span class="bg-gradient-to-r from-brand-400 to-sky-300 bg-clip-text text-transparent">Questions</span>
+                </h2>
+            </div>
+
+            <div class="space-y-4">
+                <!-- FAQ 1 -->
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <button onclick="toggleFaq(1)" class="w-full px-6 py-5 text-left flex items-center justify-between focus:outline-none">
+                        <span class="text-sm font-bold text-white">Can I migrate my existing products from Excel sheets?</span>
+                        <i id="faq-icon-1" data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform"></i>
+                    </button>
+                    <div id="faq-content-1" class="hidden px-6 pb-5 text-xs text-slate-400 leading-relaxed border-t border-white/5 pt-3">
+                        Yes! DreamInventory has a built-in Data Exchange module. You can download our formatted Excel template, paste your product catalog details, and upload the xlsx spreadsheet. All categories and threshold alerts will be populated instantly.
+                    </div>
+                </div>
+
+                <!-- FAQ 2 -->
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <button onclick="toggleFaq(2)" class="w-full px-6 py-5 text-left flex items-center justify-between focus:outline-none">
+                        <span class="text-sm font-bold text-white">Is my data secure in the online database?</span>
+                        <i id="faq-icon-2" data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform"></i>
+                    </button>
+                    <div id="faq-content-2" class="hidden px-6 pb-5 text-xs text-slate-400 leading-relaxed border-t border-white/5 pt-3">
+                        Absolutely. We run our cloud databases on AWS servers provided by Neon, which include automatic daily backups, Point-In-Time recovery, and full SSL/TLS encryption for all reads and writes. Your store records are completely isolated and safe.
+                    </div>
+                </div>
+
+                <!-- FAQ 3 -->
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <button onclick="toggleFaq(3)" class="w-full px-6 py-5 text-left flex items-center justify-between focus:outline-none">
+                        <span class="text-sm font-bold text-white">Does the POS checkout feature work on mobile/tablets?</span>
+                        <i id="faq-icon-3" data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform"></i>
+                    </button>
+                    <div id="faq-content-3" class="hidden px-6 pb-5 text-xs text-slate-400 leading-relaxed border-t border-white/5 pt-3">
+                        Yes. The DreamInventory interface is fully responsive. Cashiers and managers can log in and manage the store on iPads, Android tablets, or mobile phones. It features barcode search optimizations tailored specifically for handheld touchscreens.
+                    </div>
+                </div>
+
+                <!-- FAQ 4 -->
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <button onclick="toggleFaq(4)" class="w-full px-6 py-5 text-left flex items-center justify-between focus:outline-none">
+                        <span class="text-sm font-bold text-white">Can I customize my receipt layouts?</span>
+                        <i id="faq-icon-4" data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform"></i>
+                    </button>
+                    <div id="faq-content-4" class="hidden px-6 pb-5 text-xs text-slate-400 leading-relaxed border-t border-white/5 pt-3">
+                        Yes, under configuration settings you can change your business address, phone number, header greeting, and logo. All receipts are fully formatted in a clean layout ready to print or email to the customer.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom CTA Banner -->
+    <section class="py-20 bg-gradient-to-tr from-brand-950 to-slate-950 border-t border-white/5 relative z-10 overflow-hidden">
+        <!-- background circle -->
+        <div class="absolute inset-0 flex items-center justify-center opacity-30">
+            <div class="w-[600px] h-[600px] rounded-full bg-brand-500/10 blur-[100px]"></div>
+        </div>
+        
+        <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
+            <h2 class="text-3xl md:text-5xl font-extrabold font-display tracking-tight text-white mb-6">
+                Take Control of Your Store <span class="bg-gradient-to-r from-brand-400 to-sky-300 bg-clip-text text-transparent">Today</span>
+            </h2>
+            <p class="text-slate-300 max-w-xl mx-auto text-sm leading-relaxed mb-8">
+                Join thousands of businesses who have eliminated stock errors and speeded up their customer checkouts.
+            </p>
+            <a href="{% url 'login' %}" class="inline-flex items-center space-x-2 px-8 py-4 font-bold rounded-xl bg-gradient-to-r from-brand-600 to-sky-500 hover:from-brand-700 hover:to-sky-600 text-white shadow-xl shadow-brand-500/20 transform hover:-translate-y-0.5 transition-all">
+                <span>Start Free Trial</span>
+                <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 border-t border-white/5 bg-slate-950 text-slate-500 text-xs relative z-10">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+            <div class="space-y-4">
+                <a href="#" class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center shadow-md">
+                        <i data-lucide="box" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="text-sm font-bold tracking-tight text-white font-display">DreamInventory</span>
+                </a>
+                <p class="leading-relaxed">
+                    Smarter operations, dynamic charts, POS checkouts, and cloud stock notifications. Built for high scaling startups.
+                </p>
+            </div>
+            
+            <div class="space-y-3">
+                <span class="text-white font-semibold block text-xs tracking-wider uppercase">Product</span>
+                <ul class="space-y-2">
+                    <li><a href="#features" class="hover:text-slate-300 transition-colors">Features</a></li>
+                    <li><a href="#demo" class="hover:text-slate-300 transition-colors">Platform Demo</a></li>
+                    <li><a href="#pricing" class="hover:text-slate-300 transition-colors">Pricing Tiers</a></li>
+                </ul>
+            </div>
+
+            <div class="space-y-3">
+                <span class="text-white font-semibold block text-xs tracking-wider uppercase">Integrations</span>
+                <ul class="space-y-2">
+                    <li><span class="text-slate-600">Neon Postgres</span></li>
+                    <li><span class="text-slate-600">Cloudinary Assets</span></li>
+                    <li><span class="text-slate-600">WhiteNoise static</span></li>
+                </ul>
+            </div>
+
+            <div class="space-y-3">
+                <span class="text-white font-semibold block text-xs tracking-wider uppercase">Legal</span>
+                <ul class="space-y-2">
+                    <li><a href="#" class="hover:text-slate-300 transition-colors">Privacy Policy</a></li>
+                    <li><a href="#" class="hover:text-slate-300 transition-colors">Terms of Service</a></li>
+                    <li><a href="#" class="hover:text-slate-300 transition-colors">Security Details</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <span>&copy; 2026 DreamInventory Inc. All rights reserved.</span>
+            <div class="flex space-x-4">
+                <a href="#" class="hover:text-slate-300"><i data-lucide="twitter" class="w-4 h-4"></i></a>
+                <a href="#" class="hover:text-slate-300"><i data-lucide="github" class="w-4 h-4"></i></a>
+                <a href="#" class="hover:text-slate-300"><i data-lucide="linkedin" class="w-4 h-4"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Lucide Icon Loader -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+    
+    <!-- Animate on Scroll (AOS) -->
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            once: true,
+            duration: 800,
+        });
+    </script>
+
+    <!-- Mobile Menu Handler -->
+    <script>
+        const btn = document.getElementById('mobile-menu-btn');
+        const menu = document.getElementById('mobile-menu');
+        btn.addEventListener('click', () => {
+            menu.classList.toggle('hidden');
+        });
+    </script>
+
+    <!-- Interactive Showcase Switcher -->
+    <script>
+        function switchShowcase(screenName) {
+            // Hide all screens
+            document.querySelectorAll('.showcase-screen').forEach(scr => {
+                scr.classList.add('hidden');
+            });
+            // Show target
+            document.getElementById('showcase-' + screenName).classList.remove('hidden');
+
+            // Deactivate all buttons
+            document.querySelectorAll('.showcase-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-brand-600', 'text-white', 'shadow-lg');
+                btn.classList.add('text-slate-400', 'hover:text-white');
+            });
+
+            // Activate target button
+            const activeBtn = document.getElementById('btn-' + screenName);
+            activeBtn.classList.add('active', 'bg-brand-600', 'text-white', 'shadow-lg');
+            activeBtn.classList.remove('text-slate-400', 'hover:text-white');
+        }
+    </script>
+
+    <!-- Pricing Toggle Switcher -->
+    <script>
+        function switchBilling(cycle) {
+            const btnMonthly = document.getElementById('bill-monthly');
+            const btnAnnual = document.getElementById('bill-annual');
+
+            if (cycle === 'annual') {
+                btnAnnual.classList.add('bg-brand-600', 'text-white', 'shadow');
+                btnAnnual.classList.remove('text-slate-400');
+                btnMonthly.classList.remove('bg-brand-600', 'text-white', 'shadow');
+                btnMonthly.classList.add('text-slate-400');
+
+                // Update prices
+                document.querySelectorAll('.price-val').forEach(el => {
+                    el.textContent = el.getAttribute('data-annual');
+                });
+            } else {
+                btnMonthly.classList.add('bg-brand-600', 'text-white', 'shadow');
+                btnMonthly.classList.remove('text-slate-400');
+                btnAnnual.classList.remove('bg-brand-600', 'text-white', 'shadow');
+                btnAnnual.classList.add('text-slate-400');
+
+                // Update prices
+                document.querySelectorAll('.price-val').forEach(el => {
+                    el.textContent = el.getAttribute('data-monthly');
+                });
+            }
+        }
+    </script>
+
+    <!-- FAQ Accordion Handler -->
+    <script>
+        function toggleFaq(id) {
+            const content = document.getElementById('faq-content-' + id);
+            const icon = document.getElementById('faq-icon-' + id);
+            
+            content.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        }
+    </script>
+</body>
+</html>

@@ -12,6 +12,7 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useIsFocused } from 'expo-router';
+import * as Print from 'expo-print';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SyncService } from '../../services/sync';
 import api from '../../services/api';
@@ -104,10 +105,15 @@ export default function ScannerScreen() {
       borderWidth: 1,
       borderColor: c.border,
     },
-    itemInfo: { flex: 1 },
+    itemInfo: { flex: 1, marginRight: 10 },
     itemName: { fontSize: 16, fontWeight: '600', color: c.text },
     itemPrice: { fontSize: 14, color: c.textMuted, marginTop: 4 },
-    itemSubtotal: { fontSize: 18, fontWeight: 'bold', color: c.text },
+    itemRight: { alignItems: 'flex-end', justifyContent: 'center' },
+    itemSubtotal: { fontSize: 18, fontWeight: 'bold', color: c.text, marginBottom: 8 },
+    qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: c.inputBackground, borderRadius: 8, padding: 4 },
+    qtyBtn: { padding: 4, backgroundColor: c.surface, borderRadius: 6, borderWidth: 1, borderColor: c.border },
+    qtyText: { marginHorizontal: 12, fontSize: 16, fontWeight: 'bold', color: c.text },
+    removeBtn: { marginLeft: 12, padding: 4 },
     checkoutFooter: {
       backgroundColor: c.surface,
       padding: 20,
@@ -289,20 +295,84 @@ export default function ScannerScreen() {
     });
   };
 
+  const updateQuantity = (productId: string, delta: number) => {
+    setCart((prevCart) => {
+      return prevCart.map((item) => {
+        if (item.product_id === productId) {
+          const newQty = Math.max(1, item.quantity + delta);
+          return {
+            ...item,
+            quantity: newQty,
+            subtotal: (newQty * item.unit_price).toFixed(2),
+          };
+        }
+        return item;
+      });
+    });
+  };
+
+  const removeItem = (productId: string) => {
+    setCart((prevCart) => prevCart.filter(item => item.product_id !== productId));
+  };
+
   const calculateTotal = () =>
     cart.reduce((total, item) => total + parseFloat(item.subtotal), 0).toFixed(2);
+
+  const printReceipt = async (items: any[], total: string) => {
+    const html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: monospace; font-size: 14px; margin: 0; padding: 10px; }
+            h1 { text-align: center; font-size: 20px; margin-bottom: 5px; }
+            .divider { border-bottom: 1px dashed #000; margin: 10px 0; }
+            .item { display: flex; justify-content: space-between; margin-bottom: 5px; }
+            .total { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-top: 10px; }
+            .footer { text-align: center; margin-top: 20px; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <h1>InventoryPro POS</h1>
+          <div class="divider"></div>
+          ${items.map(item => `
+            <div class="item">
+              <div>${item.name}<br><small>${item.quantity} x NGN ${item.unit_price.toFixed(2)}</small></div>
+              <div>NGN ${parseFloat(item.subtotal).toFixed(2)}</div>
+            </div>
+          `).join('')}
+          <div class="divider"></div>
+          <div class="total">
+            <span>TOTAL:</span>
+            <span>NGN ${total}</span>
+          </div>
+          <div class="footer">Thank you for your purchase!</div>
+        </body>
+      </html>
+    `;
+    try {
+      await Print.printAsync({ html });
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Print Error', 'Could not print the receipt.');
+    }
+  };
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     const total = calculateTotal();
     const saleData = { total_amount: total, discount: 0, grand_total: total, items: cart };
+    const savedCart = [...cart];
     try {
       const result = await SyncService.submitSale(saleData);
+      setCart([]);
       Alert.alert(
         'Checkout Successful',
-        result.ok ? 'Sale recorded!' : 'Sale saved offline — sync from Dashboard when online.'
+        result.ok ? 'Sale recorded!' : 'Sale saved offline — sync from Dashboard when online.',
+        [
+          { text: 'Print Receipt', onPress: () => printReceipt(savedCart, total) },
+          { text: 'OK', style: 'cancel' }
+        ]
       );
-      setCart([]);
     } catch {
       Alert.alert('Error', 'Could not complete checkout');
     }
@@ -415,11 +485,23 @@ export default function ScannerScreen() {
             <View style={styles.cartItem}>
               <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemPrice}>
-                  ₦{item.unit_price.toFixed(2)} x {item.quantity}
-                </Text>
+                <Text style={styles.itemPrice}>₦{item.unit_price.toFixed(2)}</Text>
               </View>
-              <Text style={styles.itemSubtotal}>₦{parseFloat(item.subtotal).toFixed(2)}</Text>
+              <View style={styles.itemRight}>
+                <Text style={styles.itemSubtotal}>₦{parseFloat(item.subtotal).toFixed(2)}</Text>
+                <View style={styles.qtyControl}>
+                  <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.product_id, -1)}>
+                    <Ionicons name="remove" size={16} color={colors.text} />
+                  </TouchableOpacity>
+                  <Text style={styles.qtyText}>{item.quantity}</Text>
+                  <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.product_id, 1)}>
+                    <Ionicons name="add" size={16} color={colors.text} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.removeBtn} onPress={() => removeItem(item.product_id)}>
+                    <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           )}
         />

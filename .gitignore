@@ -75,5 +75,3 @@ htmlcov/
 # --- Misc ---
 *.orig
 *.bak
-*requirements-local.txt
-

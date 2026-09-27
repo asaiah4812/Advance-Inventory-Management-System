@@ -58,6 +58,15 @@ export default function Layout() {
         }}
       />
       <Tabs.Screen
+        name="sales"
+        options={{
+          title: 'Sales',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="add-product"
         options={{
           title: 'Add Product',
